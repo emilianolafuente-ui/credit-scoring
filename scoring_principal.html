@@ -1027,17 +1027,23 @@ function calc(){
   // Store result for PDF generation
   lastResult={nom,pai,mon,pp1,pp2,hoy,nxtStr,tcPv,tcCv,msol,lmt:Math.round(lmt),laprov,pct,nv,tot,sA,sB,ta,mej,det,an,anyV,vts,r1,r2,sc,trs,rrows,b1,b2,b3,b4,b1l,b2l,b3l,b4l,ACS,decT,cbT,icns,fs1,fs2};
 
-  // Save to Google Sheets
+  // Save to Google Sheets (sin detalle para no exceder límite de URL)
   var cfg=getCfg();
-  var ev={id:Date.now(),fecha:hoy,proxRevision:nxtStr,nombre:nom,pais:pai,moneda:mon,p2:pp2,monto:msol,score:tot,nivel:nv,pct:pct,limiteAprobado:laprov,lmt:Math.round(lmt),nivelAuth:an,anyVeto:anyV,sA:sA,sB:sB,analista:cfg.analista||'',detalle:JSON.stringify(lastResult)};
+  var evId=Date.now();
+  var ev={id:evId,fecha:hoy,proxRevision:nxtStr,nombre:nom,pais:pai,moneda:mon,p2:pp2,monto:msol,score:tot,nivel:nv,pct:pct,limiteAprobado:laprov,lmt:Math.round(lmt),nivelAuth:an,anyVeto:anyV,sA:sA,sB:sB,analista:cfg.analista||''};
   if(cfg.url){
     fetch(cfg.url+'?action=save&data='+encodeURIComponent(JSON.stringify(ev)))
     .then(()=>{document.getElementById('save-status').textContent='✓ Guardado en historial compartido';})
     .catch(()=>{document.getElementById('save-status').textContent='⚠ Guardado local (sin conexión al Sheet)';});
   }
-  // Always save locally too as backup
+  // Save full detail to localStorage cache (for report downloads)
+  var cache=JSON.parse(localStorage.getItem('credit_details_cache')||'{}');
+  cache[evId]=lastResult; var keys=Object.keys(cache);
+  if(keys.length>50){delete cache[keys[0]];}
+  localStorage.setItem('credit_details_cache',JSON.stringify(cache));
+  // Always save summary locally too as backup
   var local=JSON.parse(localStorage.getItem('credit_evals_backup')||'[]');
-  local.unshift(ev); if(local.length>200) local=local.slice(0,200);
+  local.unshift(Object.assign({},ev)); if(local.length>200) local=local.slice(0,200);
   localStorage.setItem('credit_evals_backup',JSON.stringify(local));
   document.getElementById('hcount').textContent='…';
 
@@ -1541,10 +1547,15 @@ async function doClear(pin){
 
 // ── DOWNLOAD FROM HISTORY ─────────────────────────────────────────────────────
 function dlReport(id, type){
-  var ev=cachedHistory.find(function(e){return String(e.id)===String(id);});
-  if(!ev||!ev.detalle){alert('Detalle no disponible para esta evaluación.');return;}
+  // Check localStorage cache first, then Sheet detalle
+  var cache=JSON.parse(localStorage.getItem('credit_details_cache')||'{}');
+  var saved=cache[id]||cache[String(id)];
+  if(!saved){
+    var ev=cachedHistory.find(function(e){return String(e.id)===String(id);});
+    if(ev&&ev.detalle){try{saved=JSON.parse(ev.detalle);}catch(e){}}
+  }
+  if(!saved){alert('Detalle no disponible. Los reportes solo se pueden descargar desde el navegador donde se realizó la evaluación.');return;}
   try{
-    var saved=JSON.parse(ev.detalle);
     var prev=lastResult;
     lastResult=saved;
     if(type==='internal') printInternal();
