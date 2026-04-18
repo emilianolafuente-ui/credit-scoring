@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Financial Information Form — Credit Application</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap');
+:root{--navy:#0f1f3d;--blue:#1d4ed8;--bl:#3b82f6;--acc:#f59e0b;--gr:#059669;--gl:#d1fae5;--g50:#f8fafc;--g200:#e2e8f0;--g400:#94a3b8;--g600:#475569;--g800:#1e293b;--sur:#fff;--bdr:#e2e8f0}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Instrument Sans',sans-serif;background:#f0f4ff;color:var(--g800);min-height:100vh}
+header{background:var(--navy);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-family:'DM Serif Display',serif;font-size:16px;color:#fff}.logo b{color:var(--acc)}
+.logo-s{font-size:10px;color:rgba(255,255,255,.38);margin-top:1px}
+main{max-width:760px;margin:0 auto;padding:28px 20px 80px}
+.intro{background:var(--navy);border-radius:12px;padding:20px 24px;margin-bottom:20px;color:#fff}
+.intro h2{font-family:'DM Serif Display',serif;font-size:20px;margin-bottom:6px}
+.intro p{font-size:13px;color:rgba(255,255,255,.65);line-height:1.6}
+.card{background:var(--sur);border:1px solid var(--bdr);border-radius:12px;padding:20px 24px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.ct{font-family:'DM Serif Display',serif;font-size:17px;color:var(--navy);margin-bottom:3px}
+.cs{font-size:12px;color:var(--g400);margin-bottom:14px;line-height:1.5}
+label{display:block;font-size:10px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+input,select{width:100%;padding:8px 11px;border:1.5px solid var(--bdr);border-radius:7px;font-family:'Instrument Sans',sans-serif;font-size:13px;color:var(--g800);background:var(--sur);outline:none;transition:border-color .15s}
+input:focus,select:focus{border-color:var(--bl)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
+.sec{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--g400);margin:13px 0 7px;display:flex;align-items:center;gap:7px}
+.sec::after{content:'';flex:1;height:1px;background:var(--bdr)}
+.note{background:var(--g50);border-left:3px solid var(--bl);border-radius:0 7px 7px 0;padding:8px 12px;font-size:11px;color:var(--g600);line-height:1.6;margin-bottom:10px}
+.btn{border:none;border-radius:8px;font-family:'Instrument Sans',sans-serif;font-weight:600;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;gap:6px;font-size:14px;padding:11px 24px}
+.bp{background:var(--navy);color:#fff}.bp:hover{background:#1a3260}
+.btn-row{display:flex;gap:9px;margin-top:16px;flex-wrap:wrap}
+.auto{background:var(--g50);color:var(--g400)}
+/* Result box */
+.result-box{background:var(--gl);border:2px solid #6ee7b7;border-radius:12px;padding:20px 24px;margin-top:20px;display:none}
+.result-box h3{font-family:'DM Serif Display',serif;font-size:18px;color:var(--navy);margin-bottom:8px}
+.code-area{background:#1e293b;border-radius:9px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;color:#e2e8f0;word-break:break-all;margin:10px 0;max-height:80px;overflow:hidden;cursor:pointer}
+@media(max-width:640px){.g2,.g3,.g4{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div><div class="logo">Credit Application <b>Form</b></div><div class="logo-s">Financial Information — Confidential</div></div>
+</header>
+<main>
+  <div class="intro">
+    <h2>Financial Information Request</h2>
+    <p>Please complete this form with your company's financial data from the last two fiscal years. All information is treated as strictly confidential and will be used solely for credit assessment purposes. Once completed, click <strong>"Generate Code"</strong> and send it to your account manager.</p>
+  </div>
+
+  <div class="card">
+    <div class="ct">Company Information</div>
+    <div class="g2" style="margin-bottom:10px">
+      <div><label>Company Name</label><input type="text" id="nombre" placeholder="ABC Imports Ltd."></div>
+      <div><label>Country</label><input type="text" id="pais" placeholder="Mexico"></div>
+    </div>
+    <div class="g3">
+      <div>
+        <label>Currency of financial statements</label>
+        <select id="moneda">
+          <option value="">— Select —</option>
+          <optgroup label="Americas"><option value="USD">USD</option><option value="ARS">ARS</option><option value="BRL">BRL</option><option value="CAD">CAD</option><option value="CLP">CLP</option><option value="COP">COP</option><option value="MXN">MXN</option><option value="PEN">PEN</option></optgroup>
+          <optgroup label="Europe"><option value="EUR">EUR</option><option value="GBP">GBP</option><option value="TRY">TRY</option></optgroup>
+          <optgroup label="Asia / Oceania"><option value="AUD">AUD</option><option value="CNY">CNY</option><option value="INR">INR</option><option value="JPY">JPY</option></optgroup>
+          <optgroup label="Africa"><option value="ZAR">ZAR</option></optgroup>
+          <option value="OTHER">Other</option>
+        </select>
+      </div>
+      <div><label>Fiscal Year 1 (older)</label><input type="text" id="p1" placeholder="Jan–Dec 2023"></div>
+      <div><label>Fiscal Year 2 (most recent)</label><input type="text" id="p2" placeholder="Jan–Dec 2024"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct">Income Statement</div>
+    <div class="cs">Please enter figures for the most recent fiscal year (Year 2) in your company's currency. Refer to your audited financial statements.</div>
+    <div class="note">💡 All amounts in thousands (000s) of your local currency, unless your statements are already in full amounts.</div>
+    <div class="sec">Revenue & Gross Profit</div>
+    <div class="g3" style="margin-bottom:8px">
+      <div><label>Net Revenue / Net Sales</label><input type="number" id="vn" oninput="aCalc()"></div>
+      <div><label>Cost of Goods Sold (COGS)</label><input type="number" id="cv" oninput="aCalc()"></div>
+      <div><label>Gross Profit <small style="font-weight:400;text-transform:none">(auto)</small></label><input type="number" id="ub" class="auto" readonly></div>
+    </div>
+    <div class="sec">Operating Expenses & EBIT</div>
+    <div class="g3" style="margin-bottom:8px">
+      <div><label>Operating Expenses (excl. D&A)</label><input type="number" id="go" oninput="aCalc()"></div>
+      <div><label>Depreciation & Amortization</label><input type="number" id="da" oninput="aCalc()"></div>
+      <div><label>EBIT <small style="font-weight:400;text-transform:none">(auto)</small></label><input type="number" id="ebit" class="auto" readonly></div>
+    </div>
+    <div class="sec">Below the Line</div>
+    <div class="g3" style="margin-bottom:8px">
+      <div><label>EBITDA <small style="font-weight:400;text-transform:none">(auto)</small></label><input type="number" id="ebitda" class="auto" readonly></div>
+      <div><label>Interest & Financial Expenses <small style="font-weight:400;text-transform:none">(interest only, no principal)</small></label><input type="number" id="gf" oninput="aCalc()"></div>
+      <div><label>Annual Debt Service — principal + interest payments</label><input type="number" id="sd"></div>
+    </div>
+    <div class="g3">
+      <div><label>Income Tax / Tax Expense</label><input type="number" id="imp" oninput="aCalc()"></div>
+      <div><label>Net Income / Net Profit <small style="font-weight:400;text-transform:none">(auto)</small></label><input type="number" id="un" class="auto" readonly></div>
+    </div>
+    <div style="font-size:10px;color:var(--g400);margin-top:5px">Gray fields are calculated automatically. You may overwrite if your statements show different figures.</div>
+  </div>
+
+  <div class="card">
+    <div class="ct">Balance Sheet — Year 2 (most recent)</div>
+    <div style="font-size:11px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Assets</div>
+    <div class="g4" style="margin-bottom:8px">
+      <div><label>Cash & Equivalents</label><input type="number" id="b-caja" oninput="aCalc()"></div>
+      <div><label>Accounts Receivable (net)</label><input type="number" id="b-cxc" oninput="aCalc()"></div>
+      <div><label>Inventory</label><input type="number" id="b-inv" oninput="aCalc()"></div>
+      <div><label>Other Current Assets</label><input type="number" id="b-oac" oninput="aCalc()"></div>
+    </div>
+    <div class="g3" style="margin-bottom:8px">
+      <div><label>Total Current Assets <small style="font-weight:400;text-transform:none">(auto)</small></label><input type="number" id="b-ac" class="auto" readonly></div>
+      <div><label>Non-Current Assets (net)</label><input type="number" id="b-anc" oninput="aCalc()"></div>
+      <div><label>Total Assets <small style="font-weight:400;text-transform:none">(auto)</small></label><input type="number" id="b-at" class="auto" readonly></div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;margin-top:4px">Liabilities & Equity</div>
+    <div class="g4">
+      <div><label>Current Liabilities</label><input type="number" id="b-pc" oninput="aCalc()"></div>
+      <div><label>Non-Current Liabilities</label><input type="number" id="b-pnc" oninput="aCalc()"></div>
+      <div><label>Total Liabilities <small style="font-weight:400;text-transform:none">(auto)</small></label><input type="number" id="b-pt" class="auto" readonly></div>
+      <div><label>Shareholders' Equity</label><input type="number" id="b-pn"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct">Year 1 — Comparative Data</div>
+    <div class="cs">Key figures from the previous fiscal year for trend analysis. Please enter figures from your comparative financial statements.</div>
+    <div class="g3" style="margin-bottom:8px">
+      <div><label>Net Revenue Year 1</label><input type="number" id="a1-vn"></div>
+      <div><label>EBITDA Year 1</label><input type="number" id="a1-ebitda"></div>
+      <div><label>Net Income Year 1</label><input type="number" id="a1-un"></div>
+    </div>
+    <div class="g4" style="margin-bottom:8px">
+      <div><label>Current Assets Year 1</label><input type="number" id="a1-ac"></div>
+      <div><label>Total Assets Year 1</label><input type="number" id="a1-at"></div>
+      <div><label>Current Liabilities Year 1</label><input type="number" id="a1-pc"></div>
+      <div><label>Total Liabilities Year 1</label><input type="number" id="a1-pt"></div>
+    </div>
+    <div class="g3">
+      <div><label>Inventory Year 1</label><input type="number" id="a1-inv"></div>
+      <div><label>Accounts Receivable Year 1</label><input type="number" id="a1-cxc"></div>
+      <div><label>Annual Debt Service Year 1</label><input type="number" id="a1-sd"></div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn bp" onclick="generate()">✅ Generate Code</button>
+    <button class="btn" style="background:var(--g50);border:1.5px solid var(--bdr);color:var(--g600)" onclick="resetForm()">Clear form</button>
+  </div>
+
+  <div class="result-box" id="result-box">
+    <h3>✓ Code generated successfully</h3>
+    <p style="font-size:13px;color:var(--g600);margin-bottom:6px">Copy the entire code below and send it to your account manager via email. Do not modify it.</p>
+    <div class="code-area" id="code-area" onclick="copyCode()">—</div>
+    <button class="btn bp" onclick="copyCode()" style="font-size:13px;padding:9px 20px">📋 Copy to clipboard</button>
+    <div id="copy-ok" style="display:none;font-size:12px;color:var(--gr);margin-top:6px">✓ Copied to clipboard</div>
+    <p style="font-size:11px;color:var(--g400);margin-top:10px">This code contains only your financial figures. No sensitive personal data is transmitted.</p>
+  </div>
+</main>
+<script>
+function aCalc(){
+  var vn=+document.getElementById('vn').value||0, cv=+document.getElementById('cv').value||0;
+  var go=+document.getElementById('go').value||0, da=+document.getElementById('da').value||0;
+  var gf=+document.getElementById('gf').value||0;
+  var imp=+document.getElementById('imp').value||0;
+  var ub=vn-cv; document.getElementById('ub').value=ub||'';
+  var ebit=ub-go-da; document.getElementById('ebit').value=ebit||'';
+  document.getElementById('ebitda').value=(ebit+da)||'';
+  document.getElementById('un').value=(ebit-gf-imp)||'';
+  var caja=+document.getElementById('b-caja').value||0, cxc=+document.getElementById('b-cxc').value||0;
+  var inv=+document.getElementById('b-inv').value||0, oac=+document.getElementById('b-oac').value||0;
+  var anc=+document.getElementById('b-anc').value||0;
+  var ac=caja+cxc+inv+oac; document.getElementById('b-ac').value=ac||'';
+  document.getElementById('b-at').value=(ac+anc)||'';
+  var pc=+document.getElementById('b-pc').value||0, pnc=+document.getElementById('b-pnc').value||0;
+  document.getElementById('b-pt').value=(pc+pnc)||'';
+}
+function gv(id){return parseFloat(document.getElementById(id).value)||0;}
+function generate(){
+  var nombre=document.getElementById('nombre').value.trim();
+  if(!nombre){alert('Please enter your company name.');return;}
+  var data={
+    nombre:nombre, pais:document.getElementById('pais').value,
+    moneda:document.getElementById('moneda').value,
+    p1:document.getElementById('p1').value, p2:document.getElementById('p2').value,
+    vn:gv('vn'), cv:gv('cv'), go:gv('go'), da:gv('da'), gf:gv('gf'), imp:gv('imp'), sd:gv('sd'),
+    'b-caja':gv('b-caja'), 'b-cxc':gv('b-cxc'), 'b-inv':gv('b-inv'),
+    'b-oac':gv('b-oac'), 'b-anc':gv('b-anc'), 'b-pc':gv('b-pc'),
+    'b-pnc':gv('b-pnc'), 'b-pn':gv('b-pn'),
+    'a1-vn':gv('a1-vn'), 'a1-ebitda':gv('a1-ebitda'), 'a1-un':gv('a1-un'),
+    'a1-ac':gv('a1-ac'), 'a1-at':gv('a1-at'), 'a1-pc':gv('a1-pc'),
+    'a1-pt':gv('a1-pt'), 'a1-inv':gv('a1-inv'), 'a1-cxc':gv('a1-cxc'), 'a1-sd':gv('a1-sd')
+  };
+  var code=btoa(JSON.stringify(data));
+  document.getElementById('code-area').textContent=code;
+  document.getElementById('result-box').style.display='block';
+  document.getElementById('result-box').scrollIntoView({behavior:'smooth'});
+}
+function copyCode(){
+  var txt=document.getElementById('code-area').textContent;
+  navigator.clipboard.writeText(txt).then(function(){
+    document.getElementById('copy-ok').style.display='block';
+    setTimeout(()=>document.getElementById('copy-ok').style.display='none',2500);
+  });
+}
+function resetForm(){
+  document.querySelectorAll('input').forEach(i=>i.value='');
+  document.getElementById('moneda').value='';
+  document.getElementById('result-box').style.display='none';
+}
+</script>
+</body>
+</html>

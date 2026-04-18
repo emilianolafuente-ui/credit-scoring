@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Credit Risk Scoring — Sistema de Crédito Internacional</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap');
+:root{
+  --navy:#0f1f3d;--blue:#1d4ed8;--bl:#3b82f6;--acc:#f59e0b;
+  --gr:#059669;--gl:#d1fae5;--gb:#6ee7b7;
+  --ye:#d97706;--yl:#fef9c3;--yb:#fcd34d;
+  --re:#dc2626;--rl:#fee2e2;--rb:#fca5a5;
+  --g50:#f8fafc;--g100:#f1f5f9;--g200:#e2e8f0;--g300:#cbd5e1;
+  --g400:#94a3b8;--g600:#475569;--g800:#1e293b;
+  --sur:#fff;--bdr:#e2e8f0;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Instrument Sans',sans-serif;background:var(--g50);color:var(--g800);min-height:100vh}
+
+/* ── LAYOUT ── */
+header{background:var(--navy);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(0,0,0,.3)}
+.logo{font-family:'DM Serif Display',serif;font-size:17px;color:#fff}.logo b{color:var(--acc)}
+.logo-s{font-size:10px;color:rgba(255,255,255,.38);margin-top:1px}
+.badge{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--acc);font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;font-family:'DM Mono',monospace}
+.tabs{background:var(--sur);border-bottom:2px solid var(--bdr);display:flex;padding:0 28px}
+.tab{padding:11px 16px;font-size:13px;font-weight:600;color:var(--g400);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.tab.on{color:var(--navy);border-bottom-color:var(--navy)}
+main{max-width:960px;margin:0 auto;padding:24px 20px 80px}
+
+/* ── CONFIG BANNER ── */
+.cfg-banner{background:#fef2f2;border:2px solid #fecaca;border-radius:10px;padding:14px 18px;margin-bottom:18px}
+.cfg-banner.ok{background:#d1fae5;border-color:#6ee7b7}
+.cfg-banner h3{font-size:14px;font-weight:700;color:#991b1b;margin-bottom:4px}
+.cfg-banner.ok h3{color:#065f46}
+.cfg-banner p{font-size:12px;color:#7f1d1d;line-height:1.6}
+.cfg-banner.ok p{color:#065f46}
+
+/* ── CARDS ── */
+.card{background:var(--sur);border:1px solid var(--bdr);border-radius:12px;padding:20px 24px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.ct{font-family:'DM Serif Display',serif;font-size:18px;color:var(--navy);margin-bottom:3px}
+.cs{font-size:12px;color:var(--g400);margin-bottom:14px;line-height:1.5}
+.sec{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--g400);margin:13px 0 7px;display:flex;align-items:center;gap:7px}
+.sec::after{content:'';flex:1;height:1px;background:var(--bdr)}
+
+/* ── FORMS ── */
+label{display:block;font-size:10px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+input,select{width:100%;padding:8px 11px;border:1.5px solid var(--bdr);border-radius:7px;font-family:'Instrument Sans',sans-serif;font-size:13px;color:var(--g800);background:var(--sur);transition:border-color .15s;outline:none}
+input:focus,select:focus{border-color:var(--bl)}
+input.ro{background:var(--g50);color:var(--g400)}
+input[type=checkbox]{width:auto;margin-right:6px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
+
+/* ── BUTTONS ── */
+.btn{border:none;border-radius:8px;font-family:'Instrument Sans',sans-serif;font-weight:600;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;gap:6px;font-size:13px}
+.bp{background:var(--navy);color:#fff;padding:10px 22px;font-size:14px}
+.bp:hover{background:#1a3260;transform:translateY(-1px);box-shadow:0 3px 10px rgba(15,31,61,.2)}
+.bp:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.bs{background:var(--sur);color:var(--navy);border:1.5px solid var(--bdr);padding:9px 16px}
+.bs:hover{border-color:var(--navy)}
+.bsm{padding:6px 12px;font-size:12px}
+.btn-row{display:flex;gap:9px;margin-top:14px;align-items:center;flex-wrap:wrap}
+
+/* ── STEPS ── */
+.steps{display:flex;margin-bottom:16px;border-radius:9px;overflow:hidden;border:1px solid var(--bdr);background:var(--sur)}
+.stp{flex:1;padding:9px 10px;display:flex;align-items:center;gap:6px;border-right:1px solid var(--bdr)}.stp:last-child{border-right:none}
+.stp.on{background:var(--navy)}.stp.dn{background:var(--g50)}
+.sn{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;background:var(--g200);color:var(--g600);flex-shrink:0}
+.stp.on .sn{background:var(--acc);color:var(--navy)}.stp.dn .sn{background:var(--gr);color:#fff}
+.sl{font-size:11px;font-weight:600;color:var(--g600)}.stp.on .sl{color:#fff}
+
+/* ── FX ── */
+.fx-box{background:var(--g50);border:1px solid var(--bdr);border-radius:9px;padding:12px 14px;margin-top:10px}
+.fx-rc{background:var(--sur);border:1px solid var(--gb);border-radius:8px;padding:10px 12px}
+.fx-rl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gr);margin-bottom:4px}
+.fx-warn{background:#fffbeb;border:1px solid #fde68a;border-radius:7px;padding:7px 11px;font-size:11px;color:#92400e;display:flex;gap:6px;margin-top:9px}
+
+/* ── RESULTS ── */
+.rh{background:var(--navy);border-radius:12px;padding:18px 22px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:9px}
+.sem{border-radius:12px;padding:16px 20px;margin-bottom:12px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.sem.bajo{background:var(--gl);border:2px solid var(--gb)}
+.sem.medio{background:var(--yl);border:2px solid var(--yb)}
+.sem.alto{background:var(--rl);border:2px solid var(--rb)}
+.sem-sc{font-family:'DM Serif Display',serif;font-size:46px;line-height:1;color:var(--navy)}
+.sem-sc span{font-size:15px;color:var(--g400)}
+.sem-div{width:1px;background:rgba(0,0,0,.1);align-self:stretch}
+.sem-nv{font-size:17px;font-weight:800;margin-bottom:3px}
+.bajo .sem-nv{color:var(--gr)}.medio .sem-nv{color:var(--ye)}.alto .sem-nv{color:var(--re)}
+.sem-cb{margin-top:5px;padding:5px 9px;border-radius:6px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:4px}
+.bajo .sem-cb{background:rgba(5,150,105,.1);color:var(--gr)}
+.medio .sem-cb{background:rgba(217,119,6,.1);color:var(--ye)}
+.alto .sem-cb{background:rgba(220,38,38,.1);color:var(--re)}
+.bg2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.bc{background:var(--sur);border:1px solid var(--bdr);border-radius:10px;padding:12px 14px}
+.bb{height:6px;background:var(--g100);border-radius:99px;overflow:hidden;margin-top:9px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:6px 10px;background:var(--g50);color:var(--g600);font-size:9px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--bdr);font-weight:700}
+td{padding:7px 10px;border-bottom:1px solid var(--bdr);vertical-align:middle}
+tr:last-child td{border-bottom:none}tr:hover td{background:var(--g50)}
+.rn{font-weight:500;color:var(--navy)}.rv{font-family:'DM Mono',monospace}
+.tu{color:var(--gr);font-weight:700}.tdw{color:var(--re);font-weight:700}.tf{color:var(--g400)}
+.ch{display:inline-flex;align-items:center;justify-content:center;min-width:36px;padding:2px 7px;border-radius:20px;font-family:'DM Mono',monospace;font-size:10px;font-weight:700}
+.ph{background:var(--gl);color:var(--gr)}.pm{background:var(--yl);color:var(--ye)}.pl{background:var(--rl);color:var(--re)}
+.vl{list-style:none;display:flex;flex-direction:column;gap:5px}
+.vi{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:7px;font-size:12px}
+.vok{background:var(--gl);color:#065f46}.val{background:var(--rl);color:#991b1b;font-weight:600}
+.vbanner{background:#fef2f2;border:2px solid #fecaca;border-radius:10px;padding:11px 14px;margin-bottom:12px;display:flex;gap:9px}
+.sf-box{background:#f0f4ff;border:1px solid #c7d7ff;border-radius:10px;padding:12px 16px}
+.sf-f{font-size:9px;color:#6366f1;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.sf-v{font-size:12px;font-weight:600;color:#1e1b4b;font-family:'DM Mono',monospace}
+
+/* ── TOOLTIP ── */
+.tip-w{position:relative;display:inline-block}
+.tip-i{cursor:help;font-size:10px;color:var(--bl);margin-left:3px;user-select:none}
+.tip-b{display:none;position:absolute;left:50%;transform:translateX(-50%);bottom:calc(100% + 5px);background:#1e293b;color:#fff;border-radius:7px;padding:9px 12px;width:260px;z-index:200;font-size:11px;line-height:1.5;box-shadow:0 4px 14px rgba(0,0,0,.22);pointer-events:none}
+.tip-b::after{content:'';position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:5px solid #1e293b}
+.tip-w:hover .tip-b{display:block}
+
+/* ── HISTORY ── */
+.hcard{background:var(--sur);border:1px solid var(--bdr);border-radius:10px;padding:11px 15px;display:flex;align-items:center;gap:11px;flex-wrap:wrap;margin-bottom:9px}
+.hbadge{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.hbadge.bajo{background:var(--gl)}.hbadge.medio{background:var(--yl)}.hbadge.alto{background:var(--rl)}
+
+/* ── PIN MODAL ── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:#fff;border-radius:14px;padding:28px;width:320px;box-shadow:0 8px 40px rgba(0,0,0,.2)}
+.modal h3{font-family:'DM Serif Display',serif;font-size:20px;color:var(--navy);margin-bottom:8px}
+.modal p{font-size:13px;color:var(--g600);margin-bottom:16px;line-height:1.5}
+.pin-input{font-family:'DM Mono',monospace;font-size:24px;letter-spacing:8px;text-align:center;width:100%;padding:12px;border:2px solid var(--bdr);border-radius:9px;outline:none}
+.pin-input:focus{border-color:var(--bl)}
+.modal-err{color:var(--re);font-size:12px;margin-top:7px;text-align:center;display:none}
+
+/* ── LEVEL TABLE TOGGLE ── */
+.lrt-btn{background:none;border:1.5px solid var(--bdr);border-radius:7px;padding:6px 13px;font-size:11px;font-weight:600;cursor:pointer;color:var(--g600);font-family:'Instrument Sans',sans-serif;margin-bottom:12px}
+
+/* ── EXCEPTION BOX ── */
+.exc-box{background:#f0f4ff;border:1px solid #c7d7ff;border-radius:9px;padding:12px 14px}
+
+/* ── SYNC STATUS ── */
+.sync-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
+.sync-ok{background:var(--gr)}.sync-err{background:var(--re)}.sync-loading{background:var(--acc)}
+
+/* ── PRINT (client PDF) ── */
+@media print{
+  body>*{display:none!important}
+  #print-area{display:block!important}
+}
+#print-area{display:none}
+
+@media(max-width:640px){.g2,.g3,.g4,.bg2{grid-template-columns:1fr}.sem{flex-direction:column}.sem-div{display:none}main{padding:16px 12px 60px}.steps,.banner-policy{display:none}}
+</style>
+</head>
+<body>
+
+<!-- PIN MODAL -->
+<div class="modal-bg" id="pin-modal">
+  <div class="modal">
+    <h3>🔒 PIN requerido</h3>
+    <p id="pin-msg" style="font-size:13px;color:var(--g600);margin-bottom:16px;line-height:1.5">Ingresá el PIN para continuar.</p>
+    <input class="pin-input" type="password" id="pin-input" maxlength="6" placeholder="••••" onkeydown="if(event.key==='Enter')checkPIN()">
+    <div class="modal-err" id="pin-err">PIN incorrecto. Intentá nuevamente.</div>
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn bp" onclick="checkPIN()">Confirmar</button>
+      <button class="btn bs" onclick="closePin()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- PIN CHANGE MODAL -->
+<div class="modal-bg" id="pinchg-modal">
+  <div class="modal">
+    <div id="pinchg-s1">
+      <h3>🔐 Verificar PIN actual</h3>
+      <p style="font-size:13px;color:var(--g600);margin-bottom:16px;line-height:1.5">Ingresá el PIN actual. Si es la primera vez que lo configurás, dejá este campo vacío.</p>
+      <input class="pin-input" type="password" id="pinchg-cur" maxlength="6" placeholder="••••">
+      <div class="modal-err" id="pinchg-e1">PIN incorrecto. Intentá nuevamente.</div>
+      <div class="btn-row" style="margin-top:14px">
+        <button class="btn bp" onclick="pinChgVerify()">Continuar</button>
+        <button class="btn bs" onclick="closePinChg()">Cancelar</button>
+      </div>
+    </div>
+    <div id="pinchg-s2" style="display:none">
+      <h3>🔐 Nuevo PIN</h3>
+      <p style="font-size:13px;color:var(--g600);margin-bottom:16px;line-height:1.5">Ingresá el nuevo PIN de administrador (4–6 dígitos).</p>
+      <input class="pin-input" type="password" id="pinchg-new" maxlength="6" placeholder="Nuevo PIN" style="margin-bottom:10px">
+      <input class="pin-input" type="password" id="pinchg-cfm" maxlength="6" placeholder="Confirmar PIN">
+      <div class="modal-err" id="pinchg-e2">Los PINs no coinciden.</div>
+      <div class="btn-row" style="margin-top:14px">
+        <button class="btn bp" onclick="pinChgSave()">Guardar PIN</button>
+        <button class="btn bs" onclick="closePinChg()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="modal-bg" id="import-modal">
+  <div class="modal" style="width:420px">
+    <h3>📥 Importar datos del cliente</h3>
+    <p>Pegá el código generado por el formulario del cliente.</p>
+    <textarea id="import-code" style="width:100%;height:80px;padding:8px;border:1.5px solid var(--bdr);border-radius:7px;font-family:'DM Mono',monospace;font-size:11px;resize:vertical;outline:none" placeholder="Pegá el código aquí..."></textarea>
+    <div class="modal-err" id="import-err" style="display:none;color:var(--re);font-size:12px;margin-top:6px"></div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn bp" onclick="doImport()">Importar</button>
+      <button class="btn bs" onclick="document.getElementById('import-modal').classList.remove('show')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <div><div class="logo">Credit Risk <b>Scoring</b></div><div class="logo-s">Política de Crédito Internacional — Clientes del Exterior</div></div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span id="sync-status" style="font-size:11px;color:rgba(255,255,255,.5);font-family:'DM Mono',monospace"></span>
+    <div class="badge">SOLICITUDES &gt; USD 50.000</div>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab on" id="tab-n" onclick="showTab('n')">⊕ Nueva evaluación</div>
+  <div class="tab" id="tab-h" onclick="showTab('h')">📋 Historial (<span id="hcount">—</span>)</div>
+  <div class="tab" id="tab-cfg" onclick="showTab('cfg')">⚙️ Configuración</div>
+</div>
+
+<!-- ═══ TAB NUEVA ═══ -->
+<div id="pn">
+<main>
+  <div style="background:var(--navy);border-radius:10px;padding:12px 18px;margin-bottom:16px;display:flex;gap:18px;flex-wrap:wrap">
+    <div style="flex:1;min-width:110px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.32);margin-bottom:2px">Umbral</div><div style="font-size:12px;color:#fff;font-weight:500">Crédito <b style="color:var(--acc)">&gt; USD 50.000</b></div></div>
+    <div style="flex:1;min-width:110px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.32);margin-bottom:2px">Documentación</div><div style="font-size:12px;color:#fff">Balance + EERR <b style="color:var(--acc)">2 años</b></div></div>
+    <div style="flex:1;min-width:110px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.32);margin-bottom:2px">PPC estándar</div><div style="font-size:12px;color:#fff"><b style="color:var(--acc)">60 días</b></div></div>
+    <div style="flex:1;min-width:110px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.32);margin-bottom:2px">Referencias</div><div style="font-size:12px;color:#fff"><b style="color:var(--acc)">2</b> bancarias/comerciales</div></div>
+    <div style="flex:1;min-width:110px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.32);margin-bottom:2px">Revisión</div><div style="font-size:12px;color:#fff"><b style="color:var(--acc)">Anual</b></div></div>
+  </div>
+
+  <div class="steps">
+    <div class="stp on" id="st1"><div class="sn">1</div><div class="sl">Datos &amp; FX</div></div>
+    <div class="stp" id="st2"><div class="sn">2</div><div class="sl">Estados financieros</div></div>
+    <div class="stp" id="st3"><div class="sn">3</div><div class="sl">Variables B</div></div>
+    <div class="stp" id="st4"><div class="sn">4</div><div class="sl">Resultado</div></div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div id="s1">
+    <div id="import-reminder" style="display:none;background:#fef9c3;border:2px solid #fcd34d;border-radius:10px;padding:13px 16px;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:5px">✅ Datos del cliente importados — completá los campos del analista antes de continuar:</div>
+      <div style="font-size:12px;color:#78350f;line-height:1.8">
+        • <strong>Monto solicitado (USD)</strong> — cuánto crédito pide el cliente<br>
+        • <strong>Volumen ventas últimos 12 meses (USD)</strong> — del proveedor, para calcular el LMT<br>
+        • <strong>Plazo de pago, días de mora promedio e incremento proyectado</strong><br>
+        • <strong>TC promedio y cierre</strong> si la moneda no es USD
+      </div>
+      <button onclick="document.getElementById('import-reminder').style.display='none'" style="margin-top:8px;background:none;border:1px solid #fcd34d;border-radius:6px;padding:4px 10px;font-size:11px;color:#92400e;cursor:pointer">Cerrar</button>
+    </div>
+    <div class="card">
+      <div class="ct">Datos del cliente</div>
+      <div class="cs">Aplica solicitudes &gt; USD 50.000 (Sección 1.2 y 4.1). Ver excepción Sección 6.1 para clientes con trayectoria.</div>
+      <div style="background:#f0f4ff;border:1.5px solid #c7d7ff;border-radius:9px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:#3730a3;margin-bottom:2px">📥 ¿El cliente completó el formulario?</div>
+          <div style="font-size:11px;color:#6366f1">Importá el código que te envió para cargar los datos automáticamente</div>
+        </div>
+        <button class="btn bp bsm" style="background:#3730a3" onclick="document.getElementById('import-modal').classList.add('show')">Importar datos del cliente</button>
+      </div>
+      <div class="g2" style="margin-bottom:10px">
+        <div><label>Nombre del cliente</label><input type="text" id="cn" placeholder="Importadora ABC S.A."></div>
+        <div><label>País</label><input type="text" id="cp" placeholder="Brasil"></div>
+      </div>
+      <div class="g3">
+        <div>
+          <label>Moneda de los estados financieros</label>
+          <select id="cm" onchange="onMoneda()">
+            <option value="">— Seleccionar —</option>
+            <optgroup label="América">
+              <option value="USD">USD — Dólar</option><option value="ARS">ARS — Peso argentino</option>
+              <option value="BRL">BRL — Real</option><option value="CAD">CAD — Dólar canadiense</option>
+              <option value="CLP">CLP — Peso chileno</option><option value="COP">COP — Peso colombiano</option>
+              <option value="MXN">MXN — Peso mexicano</option><option value="PEN">PEN — Sol peruano</option>
+            </optgroup>
+            <optgroup label="Europa">
+              <option value="EUR">EUR — Euro</option><option value="GBP">GBP — Libra</option>
+              <option value="TRY">TRY — Lira turca</option>
+            </optgroup>
+            <optgroup label="Asia / Oceanía">
+              <option value="AUD">AUD — Dólar australiano</option><option value="CNY">CNY — Yuan</option>
+              <option value="INR">INR — Rupia india</option><option value="JPY">JPY — Yen</option>
+            </optgroup>
+            <optgroup label="África"><option value="ZAR">ZAR — Rand sudafricano</option></optgroup>
+            <option value="OTHER">Otra — ingresar TC manualmente</option>
+            <!-- Para agregar una moneda nueva: <option value="XXX">XXX — Nombre</option> -->
+          </select>
+        </div>
+        <div><label>Período Año 1</label><input type="text" id="p1" placeholder="Ej: Ene–Dic 2023"></div>
+        <div><label>Período Año 2 (cierre)</label><input type="text" id="p2" placeholder="Ej: Ene–Dic 2024"></div>
+      </div>
+
+      <input type="hidden" id="tc-p" value="1">
+      <input type="hidden" id="tc-c" value="1">
+      <div id="fx-box" class="fx-box" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+          <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--g600)">💱 TC — <span id="fx-cur">—</span> a USD</span>
+          <span style="font-size:11px;color:var(--g400);font-family:'DM Mono',monospace" id="fxs">—</span>
+        </div>
+        <div style="margin-bottom:10px">
+          <label>Año del ejercicio</label>
+          <div style="font-size:10px;color:var(--g400);margin-bottom:4px">Ingresá el año → calcula TC Promedio (ene–dic) y TC Cierre (31-dic) automáticamente</div>
+          <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
+            <input type="number" id="fx-yr" placeholder="2024" min="2000" max="2099" style="max-width:88px;font-family:'DM Mono',monospace;font-size:14px;font-weight:700">
+            <button class="btn bp bsm" onclick="fetchFX()">Calcular TC</button>
+            <button class="btn bs bsm" id="btn-cd" onclick="toggleCD()">⊕ Cierre distinto a dic</button>
+          </div>
+          <div id="cd-wrap" style="display:none;margin-top:7px">
+            <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
+              <input type="date" id="fx-from" style="max-width:148px">
+              <span style="font-size:11px;color:var(--g400)">a</span>
+              <input type="date" id="fx-to" style="max-width:148px">
+            </div>
+          </div>
+        </div>
+        <div id="fx-load" style="display:none;font-size:11px;color:var(--g400);font-family:'DM Mono',monospace;padding:3px 0">⏳ Calculando...</div>
+        <div id="fx-grid" style="display:none">
+          <div class="g2" style="margin-bottom:8px">
+            <div class="fx-rc">
+              <div class="fx-rl">TC Promedio — EERR</div>
+              <input type="number" id="tcp-vis" step=".000001" oninput="document.getElementById('tc-p').value=this.value" style="border:none;background:transparent;font-family:'DM Mono',monospace;font-size:15px;font-weight:700;color:var(--navy);width:100%;padding:0;outline:none">
+              <div style="font-size:10px;color:var(--g400);margin-top:2px" id="fx-pd">—</div>
+            </div>
+            <div class="fx-rc">
+              <div class="fx-rl">TC Cierre — Balance</div>
+              <input type="number" id="tcc-vis" step=".000001" oninput="document.getElementById('tc-c').value=this.value" style="border:none;background:transparent;font-family:'DM Mono',monospace;font-size:15px;font-weight:700;color:var(--navy);width:100%;padding:0;outline:none">
+              <div style="font-size:10px;color:var(--g400);margin-top:2px" id="fx-cd">—</div>
+            </div>
+          </div>
+          <div style="font-size:10px;color:var(--g400);font-style:italic;margin-bottom:7px" id="fxsrc"></div>
+        </div>
+        <div class="fx-warn"><span>⚠️</span><span>TC calculado via currency-api. Editable si tu política requiere fuente oficial. Documentar en Salesforce.</span></div>
+      </div>
+
+      <!-- Excepción 6.1 -->
+      <div class="sec">Excepción Sección 6.1 — Clientes &lt; USD 50.000 con trayectoria</div>
+      <div class="exc-box">
+        <label style="display:flex;align-items:center;cursor:pointer;font-size:12px;font-weight:600;color:#3730a3;text-transform:none;letter-spacing:0;margin-bottom:0">
+          <input type="checkbox" id="es-exc" onchange="toggleExc()"> Esta solicitud aplica como excepción para monto &lt; USD 50.000 (Sección 6.1)
+        </label>
+        <div id="exc-detail" style="display:none;margin-top:10px">
+          <div style="font-size:11px;color:#6366f1;margin-bottom:7px">Verificar todos los requisitos. Aprobación conjunta requerida.</div>
+          <div style="display:flex;flex-direction:column;gap:5px" id="exc-checks">
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;text-transform:none;letter-spacing:0;margin-bottom:0"><input type="checkbox" class="exc-req" onchange="checkExc()"> Cliente tiene 2+ años de antigüedad</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;text-transform:none;letter-spacing:0;margin-bottom:0"><input type="checkbox" class="exc-req" onchange="checkExc()"> Cumplimiento de vencimientos en tiempo y forma</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;text-transform:none;letter-spacing:0;margin-bottom:0"><input type="checkbox" class="exc-req" onchange="checkExc()"> Análisis de ventas y pagos últimos 2 años realizado</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;text-transform:none;letter-spacing:0;margin-bottom:0"><input type="checkbox" class="exc-req" onchange="checkExc()"> Aprobación del Gerente de Ventas</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;text-transform:none;letter-spacing:0;margin-bottom:0"><input type="checkbox" class="exc-req" onchange="checkExc()"> Aprobación del Supervisor de Cuentas Corrientes</label>
+          </div>
+          <div id="exc-st" style="margin-top:7px;padding:7px 11px;border-radius:7px;font-size:11px;display:none"></div>
+        </div>
+      </div>
+
+      <div class="sec">Monto y fórmula de límite (Sección 3)</div>
+      <div class="g2" style="margin-bottom:9px">
+        <div><label>Monto solicitado (USD)</label><input type="number" id="ms" placeholder="150000" oninput="uLMT()"></div>
+        <div><label>Volumen ventas últimos 12 meses (USD)</label><input type="number" id="vv" placeholder="500000" oninput="uLMT()"></div>
+      </div>
+      <div class="g3">
+        <div><label>Plazo de pago (días)</label><input type="number" id="pp" value="60" oninput="uLMT()"></div>
+        <div><label>Días de mora promedio</label><input type="number" id="dm" value="0" oninput="uLMT()"></div>
+        <div><label>Incremento ventas proyectado (%)</label><input type="number" id="iv" value="10" oninput="uLMT()"></div>
+      </div>
+      <div id="lmt-box" style="display:none;margin-top:9px;background:var(--g50);border:1px solid var(--bdr);border-radius:8px;padding:10px 13px">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--g600);margin-bottom:2px">LMT — Vol. × (Plazo+Mora)/360 × (1+Incr.)</div>
+        <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:var(--navy)" id="lmt-val">—</div>
+      </div>
+    </div>
+    <div class="btn-row"><button class="btn bp" onclick="goS2()">Continuar →</button></div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div id="s2" style="display:none">
+    <div class="card">
+      <div class="ct">Estados financieros</div>
+      <div class="cs">Ingresá en <strong>moneda original</strong>. Conversión a USD automática con los TC del paso anterior.</div>
+      <div style="background:var(--g50);border:1px solid var(--bdr);border-radius:7px;padding:7px 11px;margin-bottom:12px;font-size:11px;color:var(--g600)">
+        Moneda: <strong id="s2-m">—</strong> &nbsp;|&nbsp; TC Promedio: <strong id="s2-tp">—</strong> &nbsp;|&nbsp; TC Cierre: <strong id="s2-tc">—</strong>
+      </div>
+      <div class="sec">Estado de Resultados — TC Promedio</div>
+      <div class="g3" style="margin-bottom:8px">
+        <div><label>Ventas Netas</label><input type="number" id="vn" oninput="aC()"></div>
+        <div><label>Costo de Ventas</label><input type="number" id="cv" oninput="aC()"></div>
+        <div><label>Utilidad Bruta <small style="color:var(--g400);text-transform:none">(auto)</small></label><input type="number" id="ub" class="ro" readonly></div>
+      </div>
+      <div class="g3" style="margin-bottom:8px">
+        <div><label>Gastos Operativos</label><input type="number" id="go" oninput="aC()"></div>
+        <div><label>Depreciación y Amort.</label><input type="number" id="da" oninput="aC()"></div>
+        <div><label>EBIT <small style="color:var(--g400);text-transform:none">(auto)</small></label><input type="number" id="ebit" class="ro" readonly></div>
+      </div>
+      <div class="g3" style="margin-bottom:8px">
+        <div><label>EBITDA <small style="color:var(--g400);text-transform:none">(auto)</small></label><input type="number" id="ebitda" class="ro" readonly></div>
+        <div><label>Gastos Financieros</label><input type="number" id="gf" oninput="aC()"></div>
+        <div><label>Servicio de Deuda Anual</label><input type="number" id="sd"></div>
+      </div>
+      <div class="g3">
+        <div><label>Impuesto a las Ganancias</label><input type="number" id="imp" oninput="aC()"></div>
+        <div><label>Utilidad Neta <small style="color:var(--g400);text-transform:none">(auto)</small></label><input type="number" id="un" class="ro" readonly></div>
+      </div>
+      <div style="font-size:10px;color:var(--g400);margin-top:4px;margin-bottom:13px">Grises: calculados automáticamente. Podés sobrescribir si el balance los muestra directamente.</div>
+      <div class="sec">Balance General — TC Cierre</div>
+      <div style="font-size:10px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Activo</div>
+      <div class="g4" style="margin-bottom:8px">
+        <div><label>Caja y Equiv.</label><input type="number" id="b-caja" oninput="aC()"></div>
+        <div><label>Cuentas x Cobrar</label><input type="number" id="b-cxc" oninput="aC()"></div>
+        <div><label>Inventario</label><input type="number" id="b-inv" oninput="aC()"></div>
+        <div><label>Otros Act. Ctes.</label><input type="number" id="b-oac" oninput="aC()"></div>
+      </div>
+      <div class="g3" style="margin-bottom:8px">
+        <div><label>Activo Cte. <small style="color:var(--g400);text-transform:none">(auto)</small></label><input type="number" id="b-ac" class="ro" readonly></div>
+        <div><label>Activos No Ctes.</label><input type="number" id="b-anc" oninput="aC()"></div>
+        <div><label>Activo Total <small style="color:var(--g400);text-transform:none">(auto)</small></label><input type="number" id="b-at" class="ro" readonly></div>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;margin-top:3px">Pasivo &amp; Patrimonio</div>
+      <div class="g4">
+        <div><label>Pasivo Corriente</label><input type="number" id="b-pc" oninput="aC()"></div>
+        <div><label>Pasivo No Corriente</label><input type="number" id="b-pnc" oninput="aC()"></div>
+        <div><label>Pasivo Total <small style="color:var(--g400);text-transform:none">(auto)</small></label><input type="number" id="b-pt" class="ro" readonly></div>
+        <div><label>Patrimonio Neto</label><input type="number" id="b-pn"></div>
+      </div>
+      <div class="sec" style="margin-top:15px">Año 1 comparativo — <span id="s2-p1">Año 1</span></div>
+      <div style="font-size:11px;color:var(--g400);margin-bottom:8px">Datos clave para calcular tendencia interanual.</div>
+      <div class="g3" style="margin-bottom:8px">
+        <div><label>Ventas Netas A1</label><input type="number" id="a1-vn"></div>
+        <div><label>EBITDA A1</label><input type="number" id="a1-ebitda"></div>
+        <div><label>Utilidad Neta A1</label><input type="number" id="a1-un"></div>
+      </div>
+      <div class="g4" style="margin-bottom:8px">
+        <div><label>Activo Cte. A1</label><input type="number" id="a1-ac"></div>
+        <div><label>Activo Total A1</label><input type="number" id="a1-at"></div>
+        <div><label>Pasivo Cte. A1</label><input type="number" id="a1-pc"></div>
+        <div><label>Pasivo Total A1</label><input type="number" id="a1-pt"></div>
+      </div>
+      <div class="g3">
+        <div><label>Inventario A1</label><input type="number" id="a1-inv"></div>
+        <div><label>CxC A1</label><input type="number" id="a1-cxc"></div>
+        <div><label>Serv. Deuda A1</label><input type="number" id="a1-sd"></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn bs" onclick="goS(1)">← Atrás</button>
+      <button class="btn bp" onclick="goS(3)">Continuar →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div id="s3" style="display:none">
+    <div class="card">
+      <div class="ct">Variables cualitativas — Bloque B</div>
+      <div class="cs">Información del historial interno y Salesforce.</div>
+      <button class="lrt-btn" onclick="toggleLRT()">📊 Ver tabla de niveles de riesgo</button>
+      <div id="lrt-body" style="display:none;margin-bottom:12px;border:1px solid var(--bdr);border-radius:10px;overflow:hidden">
+        <table>
+          <thead><tr style="background:var(--navy)">
+            <th style="color:#fff">Puntaje</th><th style="color:#fff">Nivel</th><th style="color:#fff">Límite</th><th style="color:#fff">Decisión</th><th style="color:#fff">Cobro</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="font-family:'DM Mono',monospace;font-weight:700">75–100</td><td><span style="background:var(--gl);color:var(--gr);border:1px solid var(--gb);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700">RIESGO BAJO</span></td><td style="font-weight:700;color:var(--gr)">100% LMT</td><td style="font-size:11px;color:var(--g600)">100% del LMT. Historial sólido, economía estable (Sec. 2.2a).</td><td style="font-size:11px;color:var(--g600)">Transf. estándar / CdC (Sec. 4.1)</td></tr>
+            <tr style="background:var(--g50)"><td style="font-family:'DM Mono',monospace;font-weight:700">55–74</td><td><span style="background:var(--yl);color:var(--ye);border:1px solid var(--yb);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700">RIESGO MODERADO</span></td><td style="font-weight:700;color:var(--ye)">75% LMT</td><td style="font-size:11px;color:var(--g600)">Hasta 75% LMT. ≤5 días hábiles. Revisión 6 meses (Sec. 2.2b).</td><td style="font-size:11px;color:var(--g600)">Transf. verificada / CdC Dir. Fin. (Sec. 4.2)</td></tr>
+            <tr><td style="font-family:'DM Mono',monospace;font-weight:700">&lt; 55</td><td><span style="background:var(--rl);color:var(--re);border:1px solid var(--rb);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700">RIESGO ALTO</span></td><td style="font-weight:700;color:var(--re)">Rechazado</td><td style="font-size:11px;color:var(--g600)">Rechazado. Alternativas: anticipo ≥50% o garantía bancaria (Sec. 2.2c, 6.2).</td><td style="font-size:11px;color:var(--g600)">Pago adelantado / CdC Alta Dir. (Sec. 4.3)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:11px">
+        <div><label>B.1 — Riesgo País (Sec. 2.1)</label>
+          <select id="b1"><option value="">— Seleccionar —</option>
+            <option value="10">Bajo (A) — Economía estable — 10 pts</option>
+            <option value="7">Moderado (B) — En desarrollo / restricciones cambiarias — 7 pts</option>
+            <option value="3">Alto (C) — Riesgos económicos y políticos — 3 pts</option>
+            <option value="0">Muy alto (D) — 0 pts</option>
+          </select></div>
+        <div><label>B.2 — Historial de pago (Sec. 2.2 y 6.1)</label>
+          <select id="b2"><option value="">— Seleccionar —</option>
+            <option value="10">Paga en término o ≤5 días hábiles — 10 pts</option>
+            <option value="5">Mora ocasional 6–15 días hábiles — 5 pts</option>
+            <option value="2">Mora frecuente 15–30 días — 2 pts</option>
+            <option value="0">Mora &gt;30 días o default previo — 0 pts</option>
+          </select></div>
+        <div><label>B.3 — Referencias bancarias / comerciales (Sec. 1.1 y 4.1)</label>
+          <select id="b3"><option value="">— Seleccionar —</option>
+            <option value="6">2+ referencias favorables verificadas — 6 pts</option>
+            <option value="3">1 referencia favorable — 3 pts</option>
+            <option value="1">Sin referencias (informe externo) — 1 pt</option>
+            <option value="0">Referencias desfavorables — 0 pts</option>
+          </select></div>
+        <div><label>B.4 — Trayectoria comercial (Sec. 6.1)</label>
+          <select id="b4"><option value="">— Seleccionar —</option>
+            <option value="4">2+ años con buen comportamiento — 4 pts</option>
+            <option value="2">1–2 años — 2 pts</option>
+            <option value="1">Cliente nuevo (1° venta 100% anticipada) — 1 pt</option>
+          </select></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn bs" onclick="goS(2)">← Atrás</button>
+      <button class="btn bp" onclick="calc()">Calcular Scoring →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div id="s4" style="display:none">
+    <div id="rc"></div>
+    <div class="btn-row">
+      <button class="btn bs" onclick="goS(3)">← Ajustar</button>
+      <button class="btn bp" onclick="printInternal()">🖨️ PDF interno</button>
+      <button class="btn bp" style="background:#059669" onclick="printClient()">📄 PDF para el cliente (EN)</button>
+      <button class="btn bs" onclick="resetAll()">Nueva evaluación</button>
+      <span style="font-size:11px;color:var(--g400);font-style:italic" id="save-status">✓ Guardado en historial</span>
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- ═══ TAB HISTORIAL ═══ -->
+<div id="ph" style="display:none">
+<main>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:9px">
+    <div>
+      <h2 style="font-family:'DM Serif Display',serif;font-size:22px;color:var(--navy)">Historial compartido</h2>
+      <p style="font-size:11px;color:var(--g400);margin-top:2px" id="hist-sub">Sincronizando con Google Sheets...</p>
+    </div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap">
+      <button class="btn bs bsm" onclick="refreshHistory()">🔄 Actualizar</button>
+      <button class="btn bs bsm" onclick="exportExcel()">⬇️ Descargar Excel</button>
+      <button class="btn bs bsm" style="color:var(--re);border-color:var(--rb)" onclick="reqPin('clearAll')">🗑 Borrar todo</button>
+    </div>
+  </div>
+  <div id="h-alert"></div>
+  <div id="hcont"><div style="text-align:center;padding:40px;color:var(--g400)">⏳ Cargando historial...</div></div>
+</main>
+</div>
+
+<!-- ═══ TAB CONFIGURACIÓN ═══ -->
+<div id="pcfg" style="display:none">
+<main>
+  <div class="card">
+    <div class="ct">⚙️ Configuración del sistema</div>
+    <div class="cs">Configuración inicial requerida para el funcionamiento del historial compartido.</div>
+
+    <div class="sec">Google Sheets — Historial compartido</div>
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#92400e;line-height:1.7">
+      <strong>Pasos para configurar:</strong><br>
+      1. Ir a <a href="https://sheets.new" target="_blank" style="color:#1d4ed8;font-weight:600">sheets.new</a> y crear un nuevo Google Sheet.<br>
+      2. En la hoja, ir a <strong>Extensiones → Apps Script</strong>.<br>
+      3. Borrar el contenido y pegar el script de abajo. Guardarlo.<br>
+      4. Hacer clic en <strong>Implementar → Nueva implementación → Aplicación web</strong>.<br>
+      5. En "Ejecutar como" elegir <strong>Yo</strong>. En "Quién tiene acceso" elegir <strong>Cualquier persona</strong>.<br>
+      6. Copiar la URL de implementación y pegarla abajo.<br>
+      7. Autorizar los permisos cuando lo solicite.
+    </div>
+
+    <div style="margin-bottom:12px">
+      <label>URL de la Apps Script (Web App)</label>
+      <input type="text" id="cfg-url" placeholder="https://script.google.com/macros/s/.../exec" oninput="saveCfg()">
+    </div>
+    <div class="g2" style="margin-bottom:12px">
+      <div>
+        <label>PIN de administrador</label>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 11px;border:1.5px solid var(--bdr);border-radius:7px;background:var(--g50)">
+          <span style="font-size:13px;color:var(--g600);flex:1" id="pin-status-txt">No configurado</span>
+          <button class="btn bs bsm" onclick="openPinChg()">Cambiar PIN</button>
+        </div>
+        <div style="font-size:10px;color:var(--g400);margin-top:3px">Solo el administrador puede cambiar el PIN de eliminación.</div>
+      </div>
+      <div>
+        <label>Nombre del analista (para registro)</label>
+        <input type="text" id="cfg-analista" placeholder="Ej: María García" oninput="saveCfg()">
+      </div>
+    </div>
+    <button class="btn bp" onclick="testConnection()">Probar conexión</button>
+    <div id="cfg-test" style="margin-top:10px;font-size:12px"></div>
+
+    <div class="sec" style="margin-top:18px">Script para Apps Script</div>
+    <div style="background:#1e293b;border-radius:9px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;color:#e2e8f0;line-height:1.7;white-space:pre-wrap;overflow-x:auto" id="script-block">function getPin_() {
+  var s = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('_Config');
+  return s ? String(s.getRange('B1').getValue()) : '';
+}
+function setPin_(pin) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var s = ss.getSheetByName('_Config') || ss.insertSheet('_Config');
+  s.getRange('A1').setValue('admin_pin');
+  s.getRange('B1').setValue(String(pin));
+}
+
+function execAction(data) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Evaluaciones') || ss.insertSheet('Evaluaciones');
+  var action = data.action;
+
+  if (action === 'save') {
+    var row = data.row || data;
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(['ID','Fecha','Cliente','País','Moneda','Período','Monto','Score',
+        'Nivel','Límite Aprobado','LMT','%','Fecha Revisión','Próx. Revisión','Veto','Nivel Auth','Score A','Score B','Analista','Detalle']);
+    } else {
+      var hdrs = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
+      if (hdrs.indexOf('Detalle') === -1) sheet.getRange(1, hdrs.length+1).setValue('Detalle');
+    }
+    sheet.appendRow([String(row.id),row.fecha,row.nombre,row.pais,row.moneda,row.p2,
+      row.monto,row.score,row.nivel,row.limiteAprobado,row.lmt,row.pct,
+      row.fecha,row.proxRevision,row.anyVeto?'SÍ':'No','Nivel '+(row.nivelAuth+1),row.sA,row.sB,row.analista||'',row.detalle||'']);
+    return ContentService.createTextOutput(JSON.stringify({ok:true})).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (action === 'delete') {
+    var stored = getPin_();
+    if (stored && String(data.pin) !== stored) {
+      return ContentService.createTextOutput(JSON.stringify({ok:false,err:'pin'})).setMimeType(ContentService.MimeType.JSON);
+    }
+    var id = data.id;
+    var rows = sheet.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (String(rows[i][0]) === String(id)) { sheet.deleteRow(i+1); break; }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ok:true})).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (action === 'clear') {
+    var stored = getPin_();
+    if (stored && String(data.pin) !== stored) {
+      return ContentService.createTextOutput(JSON.stringify({ok:false,err:'pin'})).setMimeType(ContentService.MimeType.JSON);
+    }
+    if (sheet.getLastRow() > 1) sheet.deleteRows(2, sheet.getLastRow()-1);
+    return ContentService.createTextOutput(JSON.stringify({ok:true})).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (action === 'setPin') {
+    var stored = getPin_();
+    if (stored && String(data.oldPin) !== stored) {
+      return ContentService.createTextOutput(JSON.stringify({ok:false,err:'pin'})).setMimeType(ContentService.MimeType.JSON);
+    }
+    setPin_(data.newPin);
+    return ContentService.createTextOutput(JSON.stringify({ok:true})).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  return ContentService.createTextOutput(JSON.stringify({ok:false,err:'unknown'})).setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    return execAction(data);
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({ok:false,err:err.message})).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  if (e.parameter && e.parameter.action) {
+    var data = {action: e.parameter.action};
+    var keys = ['id','pin','oldPin','newPin'];
+    keys.forEach(function(k){ if(e.parameter[k]) data[k]=e.parameter[k]; });
+    if (e.parameter.data) {
+      try { var p=JSON.parse(e.parameter.data); for(var k in p) data[k]=p[k]; } catch(err) {}
+    }
+    return execAction(data);
+  }
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Evaluaciones');
+  if (!sheet || sheet.getLastRow() <= 1) {
+    return ContentService.createTextOutput(JSON.stringify([])).setMimeType(ContentService.MimeType.JSON);
+  }
+  var rows = sheet.getDataRange().getValues();
+  var headers = rows[0];
+  var result = rows.slice(1).map(function(r) {
+    var obj = {};
+    headers.forEach(function(h,i){ obj[h]=r[i]; });
+    return obj;
+  });
+  return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+}</div>
+    <button class="btn bs bsm" style="margin-top:8px" onclick="copyScript()">📋 Copiar script</button>
+    <div id="copy-ok" style="display:none;font-size:11px;color:var(--gr);margin-top:5px">✓ Copiado al portapapeles</div>
+
+    <div class="sec" id="github-guide" style="margin-top:18px">Cómo subir a GitHub Pages (gratis, 5 minutos)</div>
+    <div style="background:var(--g50);border:1px solid var(--bdr);border-radius:9px;padding:14px 16px;font-size:12px;color:var(--g600);line-height:1.9">
+      <strong>Paso 1:</strong> Crear cuenta gratuita en <a href="https://github.com" target="_blank" style="color:var(--bl)">github.com</a><br>
+      <strong>Paso 2:</strong> Crear un repositorio nuevo → darle un nombre (ej: <code>credit-scoring</code>)<br>
+      <strong>Paso 3:</strong> Subir los archivos <code>scoring_principal.html</code> y <code>formulario_cliente.html</code><br>
+      <strong>Paso 4:</strong> Ir a Settings → Pages → Source: seleccionar <strong>main</strong> → Save<br>
+      <strong>Paso 5:</strong> En 1–2 minutos tenés tu URL pública: <code>tuusuario.github.io/credit-scoring/scoring_principal.html</code><br>
+      <strong>Paso 6:</strong> Compartir esa URL con todos los analistas del equipo<br><br>
+      Desde esa URL, Google Sheets funciona perfectamente y el historial es compartido.
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- PRINT AREAS -->
+<div id="print-area-internal" style="display:none"></div>
+<div id="print-area-client" style="display:none"></div>
+
+<style>
+@media print {
+  body > * { display: none !important; }
+  .print-show { display: block !important; }
+}
+</style>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+var CFG_KEY = 'credit_cfg_v1';
+var SHEET_URL = 'https://script.google.com/a/macros/terragene.com/s/AKfycbw3Evul8oJO9DLInLHwt-CcMcC2Re_J5-W8N69yhXF-nrOH8iWpefbXGt7inV-Hun0/exec';
+function getCfg(){ try{ var c=JSON.parse(localStorage.getItem(CFG_KEY)||'{}'); if(!c.url) c.url=SHEET_URL; return c; }catch(e){ return {url:SHEET_URL}; } }
+function saveCfg(){
+  var cfg = getCfg();
+  cfg.url = document.getElementById('cfg-url').value.trim();
+  cfg.analista = document.getElementById('cfg-analista').value.trim();
+  localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+}
+function loadCfg(){
+  var cfg = getCfg();
+  document.getElementById('cfg-url').value = cfg.url||SHEET_URL;
+  document.getElementById('cfg-analista').value = cfg.analista||'';
+  updatePinStatus();
+}
+function updatePinStatus(){
+  var el=document.getElementById('pin-status-txt');
+  if(!el)return;
+  var cfg=getCfg();
+  el.textContent=cfg.url?'Guardado en Google Sheets':'Configurá la URL del script primero';
+}
+function openPinChg(){
+  document.getElementById('pinchg-cur').value='';
+  document.getElementById('pinchg-new').value='';
+  document.getElementById('pinchg-cfm').value='';
+  document.getElementById('pinchg-e1').style.display='none';
+  document.getElementById('pinchg-e2').style.display='none';
+  document.getElementById('pinchg-s1').style.display='block';
+  document.getElementById('pinchg-s2').style.display='none';
+  document.getElementById('pinchg-modal').classList.add('show');
+}
+function closePinChg(){
+  document.getElementById('pinchg-modal').classList.remove('show');
+}
+function pinChgVerify(){
+  document.getElementById('pinchg-s1').style.display='none';
+  document.getElementById('pinchg-s2').style.display='block';
+  document.getElementById('pinchg-new').focus();
+}
+async function pinChgSave(){
+  var np=document.getElementById('pinchg-new').value;
+  var nc=document.getElementById('pinchg-cfm').value;
+  var e2=document.getElementById('pinchg-e2');
+  if(np.length<4){e2.textContent='Mínimo 4 dígitos.';e2.style.display='block';return;}
+  if(np!==nc){e2.textContent='Los PINs no coinciden.';e2.style.display='block';return;}
+  var oldPin=document.getElementById('pinchg-cur').value;
+  var cfg=getCfg();
+  if(cfg.url){
+    try{
+      var res=await fetch(cfg.url+'?action=setPin&oldPin='+encodeURIComponent(oldPin)+'&newPin='+encodeURIComponent(np));
+      var json=await res.json();
+      if(!json.ok){e2.textContent='PIN actual incorrecto.';e2.style.display='block';return;}
+    }catch(e){e2.textContent='Error de conexión. Verificá la URL del script.';e2.style.display='block';return;}
+  }
+  closePinChg();
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function showTab(t){
+  ['n','h','cfg'].forEach(function(x){
+    document.getElementById('p'+(x==='n'?'n':x==='h'?'h':'cfg')).style.display = t===x?'block':'none';
+    document.getElementById('tab-'+(x==='cfg'?'cfg':x)).className = 'tab'+(t===x?' on':'');
+  });
+  if(t==='h') refreshHistory();
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+function goS(n){
+  [1,2,3,4].forEach(function(i){
+    document.getElementById('s'+i).style.display = i===n?'block':'none';
+    var t = document.getElementById('st'+i);
+    t.className = 'stp'+(i===n?' on':i<n?' dn':'');
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function goS2(){
+  if(!document.getElementById('cn').value.trim()){alert('Ingresá el nombre del cliente.');return;}
+  if(!document.getElementById('cm').value){alert('Seleccioná la moneda.');return;}
+  var m=document.getElementById('cm').value;
+  var tcp=m==='USD'?'1.000000':document.getElementById('tc-p').value||'—';
+  var tcc=m==='USD'?'1.000000':document.getElementById('tc-c').value||'—';
+  document.getElementById('s2-m').textContent=m;
+  document.getElementById('s2-tp').textContent=tcp;
+  document.getElementById('s2-tc').textContent=tcc;
+  document.getElementById('s2-p1').textContent=document.getElementById('p1').value||'Año 1';
+  goS(2);
+}
+
+// ── LMT ───────────────────────────────────────────────────────────────────────
+function uLMT(){
+  var v=+document.getElementById('vv').value||0, p=+document.getElementById('pp').value||0;
+  var m=+document.getElementById('dm').value||0, i=+document.getElementById('iv').value||0;
+  if(!v||!p){document.getElementById('lmt-box').style.display='none';return;}
+  var lmt=v*((p+m)/360)*(1+i/100);
+  document.getElementById('lmt-box').style.display='block';
+  document.getElementById('lmt-val').textContent='USD '+Math.round(lmt).toLocaleString('es-AR');
+}
+
+// ── AUTO CALC ─────────────────────────────────────────────────────────────────
+function aC(){
+  var vn=+document.getElementById('vn').value||0, cv=+document.getElementById('cv').value||0;
+  var go=+document.getElementById('go').value||0, da=+document.getElementById('da').value||0;
+  var gf=+document.getElementById('gf').value||0;
+  var imp=+document.getElementById('imp').value||0;
+  var ub=vn-cv; document.getElementById('ub').value=ub||'';
+  var ebit=ub-go-da; document.getElementById('ebit').value=ebit||'';
+  document.getElementById('ebitda').value=(ebit+da)||'';
+  document.getElementById('un').value=(ebit-gf-imp)||'';
+  var caja=+document.getElementById('b-caja').value||0, cxc=+document.getElementById('b-cxc').value||0;
+  var inv=+document.getElementById('b-inv').value||0, oac=+document.getElementById('b-oac').value||0;
+  var anc=+document.getElementById('b-anc').value||0;
+  var ac=caja+cxc+inv+oac; document.getElementById('b-ac').value=ac||'';
+  document.getElementById('b-at').value=(ac+anc)||'';
+  var pc=+document.getElementById('b-pc').value||0, pnc=+document.getElementById('b-pnc').value||0;
+  document.getElementById('b-pt').value=(pc+pnc)||'';
+}
+
+// ── FX ────────────────────────────────────────────────────────────────────────
+function onMoneda(){
+  var m=document.getElementById('cm').value;
+  document.getElementById('tc-p').value='1'; document.getElementById('tc-c').value='1';
+  if(!m||m==='USD'){document.getElementById('fx-box').style.display='none';return;}
+  document.getElementById('fx-box').style.display='block';
+  document.getElementById('fx-cur').textContent=m;
+  document.getElementById('fx-grid').style.display='none';
+  document.getElementById('fx-yr').value='';
+  document.getElementById('fxs').textContent=m==='OTHER'?'Ingresar manualmente':'Ingresá el año y presioná Calcular TC';
+  if(m==='OTHER') document.getElementById('fx-grid').style.display='block';
+}
+function toggleCD(){
+  var w=document.getElementById('cd-wrap'), b=document.getElementById('btn-cd');
+  var open=w.style.display==='block';
+  w.style.display=open?'none':'block';
+  b.textContent=open?'⊕ Cierre distinto a dic':'✕ Usar ene–dic';
+}
+async function fetchFX(){
+  var m=document.getElementById('cm').value, yr=parseInt(document.getElementById('fx-yr').value);
+  if(!m||m==='USD'||m==='OTHER') return;
+  if(!yr||yr<2000||yr>2099){alert('Ingresá un año válido.');return;}
+  var useC=document.getElementById('cd-wrap').style.display==='block';
+  var fromD=useC&&document.getElementById('fx-from').value?document.getElementById('fx-from').value:yr+'-01-01';
+  var toD=useC&&document.getElementById('fx-to').value?document.getElementById('fx-to').value:yr+'-12-31';
+  var mL=m.toLowerCase();
+  document.getElementById('fx-load').style.display='block';
+  document.getElementById('fx-grid').style.display='none';
+  document.getElementById('fxs').textContent='Calculando...';
+  document.getElementById('fxs').style.color='var(--g400)';
+  try{
+    var resC=await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@'+toD+'/v1/currencies/usd.min.json');
+    if(!resC.ok) throw new Error('Sin datos para '+toD);
+    var datC=await resC.json();
+    var rC=datC.usd&&datC.usd[mL];
+    if(!rC) throw new Error('Moneda '+m+' no encontrada');
+    var tcC=1/rC;
+    var samples=[], cur=new Date(fromD+'T12:00:00'), end=new Date(toD+'T12:00:00');
+    while(cur<=end){samples.push(cur.toISOString().split('T')[0]);cur.setMonth(cur.getMonth()+1);}
+    if(samples[samples.length-1]!==toD) samples.push(toD);
+    var rates=[];
+    for(var s of samples){
+      try{
+        var r=await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@'+s+'/v1/currencies/usd.min.json');
+        if(!r.ok) continue;
+        var d=await r.json(); var rv=d.usd&&d.usd[mL];
+        if(rv) rates.push(1/rv);
+      }catch(e){}
+    }
+    if(!rates.length) throw new Error('Sin datos del período');
+    var tcP=rates.reduce((a,b)=>a+b,0)/rates.length;
+    document.getElementById('fx-load').style.display='none';
+    document.getElementById('tc-p').value=tcP.toFixed(6);
+    document.getElementById('tc-c').value=tcC.toFixed(6);
+    document.getElementById('tcp-vis').value=tcP.toFixed(6);
+    document.getElementById('tcc-vis').value=tcC.toFixed(6);
+    document.getElementById('fx-pd').textContent='Promedio '+rates.length+' muestras · '+fromD+' → '+toD;
+    document.getElementById('fx-cd').textContent='Cierre al '+toD;
+    document.getElementById('fxsrc').textContent='Fuente: currency-api (CDN jsdelivr) · '+fromD+' a '+toD;
+    document.getElementById('fx-grid').style.display='block';
+    document.getElementById('fxs').textContent='✓ TC calculado';
+    document.getElementById('fxs').style.color='var(--gr)';
+  }catch(e){
+    document.getElementById('fx-load').style.display='none';
+    document.getElementById('fxs').textContent='Error: '+e.message;
+    document.getElementById('fxs').style.color='var(--re)';
+    document.getElementById('fx-grid').style.display='block';
+    console.error(e);
+  }
+}
+
+// ── EXCEPTION ─────────────────────────────────────────────────────────────────
+function toggleExc(){
+  var on=document.getElementById('es-exc').checked;
+  document.getElementById('exc-detail').style.display=on?'block':'none';
+  if(on) checkExc();
+}
+function checkExc(){
+  var all=Array.from(document.querySelectorAll('.exc-req')).every(b=>b.checked);
+  var st=document.getElementById('exc-st'); st.style.display='block';
+  if(all){st.style.cssText='background:var(--gl);color:#065f46;border:1px solid var(--gb);border-radius:7px;padding:7px 11px;font-size:11px';st.textContent='✓ Todos los requisitos cumplidos.';}
+  else{st.style.cssText='background:var(--rl);color:#991b1b;border:1px solid var(--rb);border-radius:7px;padding:7px 11px;font-size:11px';st.textContent='⚠️ Faltan condiciones.';}
+}
+
+// ── LEVEL REF ─────────────────────────────────────────────────────────────────
+function toggleLRT(){
+  var b=document.getElementById('lrt-body');
+  b.style.display=b.style.display==='none'?'block':'none';
+}
+
+// ── SCORING ───────────────────────────────────────────────────────────────────
+function gv(id){return parseFloat(document.getElementById(id).value)||0;}
+function sf(a,b){return(b&&b!==0)?a/b:null;}
+function fmt(v,t){if(v===null||v===undefined)return'—';if(t==='pct')return(v*100).toFixed(1)+'%';if(t==='d')return v.toFixed(0)+'d';return v.toFixed(2)+'x';}
+function fu(v){return(v!==null&&v!==undefined)?'USD '+Math.round(v).toLocaleString('es-AR'):'—';}
+
+var RI={
+  lc:{n:'Liquidez Corriente',f:'Activo Corriente / Pasivo Corriente',r:'≥2.0→12pts · 1.5–2.0→9 · 1.0–1.5→6 · 0.8–1.0→3 · <0.8→0'},
+  ac:{n:'Prueba Ácida',f:'(Activo Cte − Inv) / Pasivo Cte',r:'≥1.5→8pts · 1.0–1.5→6 · 0.7–1.0→4 · 0.5–0.7→2 · <0.5→0'},
+  en:{n:'Endeudamiento',f:'Pasivo Total / Activo Total',r:'<0.40→10pts · .40–.55→8 · .55–.65→5 · .65–.75→2 · >0.75→0'},
+  ds:{n:'DSCR',f:'EBITDA / Servicio Deuda',r:'≥2.0→10pts · 1.5–2.0→7 · 1.2–1.5→4 · 1.0–1.2→1 · <1.0→0'},
+  mn:{n:'Margen Neto',f:'Utilidad Neta / Ventas Netas',r:'>10%→8pts · 5–10%→6 · 2–5%→3 · 0–2%→1 · <0%→0'},
+  ra:{n:'ROA',f:'Utilidad Neta / Activo Total',r:'>8%→7pts · 4–8%→5 · 1–4%→2 · 0–1%→1 · <0%→0'},
+  dso:{n:'Días de Cobro (DSO)',f:'CxC / (Ventas / 365)',r:'<30d→8pts · 30–45d→6 · 45–60d→4 · 60–90d→2 · >90d→0'},
+  ro:{n:'Rotación Activos',f:'Ventas / Activo Total',r:'≥1.5x→7pts · 1.0–1.5x→5 · 0.7–1.0x→3 · 0.5–0.7x→1 · <0.5x→0'}
+};
+function tip(k){return '<div class="tip-w"><span class="tip-i">ⓘ</span><div class="tip-b"><div style="font-weight:700;color:var(--acc);margin-bottom:3px">'+RI[k].n+'</div><div style="color:#94a3b8;margin-bottom:4px">'+RI[k].f+'</div><div>'+RI[k].r+'</div></div></div>';}
+function chip(p,m){var r=p/m;var c=r>=0.7?'ph':r>=0.4?'pm':'pl';return '<span class="ch '+c+'">'+p+'/'+m+'</span>';}
+function tH(t){return t==='u'?'<span class="tu">▲</span>':t==='d'?'<span class="tdw">▼</span>':'<span class="tf">▶</span>';}
+
+var lastResult=null;
+
+function calc(){
+  var b1=+document.getElementById('b1').value, b2=+document.getElementById('b2').value;
+  var b3=+document.getElementById('b3').value, b4=+document.getElementById('b4').value;
+  if([b1,b2,b3,b4].some(isNaN)){alert('Completá todas las variables del Bloque B.');return;}
+
+  var mon=document.getElementById('cm').value||'USD';
+  var tcP=mon==='USD'?1:(+document.getElementById('tc-p').value||1);
+  var tcC=mon==='USD'?1:(+document.getElementById('tc-c').value||1);
+
+  var vn2=gv('vn')*tcP, cv2=gv('cv')*tcP, go2=gv('go')*tcP, da2=gv('da')*tcP, gf2=gv('gf')*tcP, imp2=gv('imp')*tcP;
+  var ub2=vn2-cv2, ebit2=ub2-go2-da2, ebitda2=ebit2+da2, un2=ebit2-gf2-imp2, sd2=gv('sd')*tcP;
+  var bac2=gv('b-ac')*tcC, bat2=gv('b-at')*tcC, bpc2=gv('b-pc')*tcC, bpt2=gv('b-pt')*tcC;
+  var binv2=gv('b-inv')*tcC, bcxc2=gv('b-cxc')*tcC;
+  var d2={vn:vn2,ebitda:ebitda2,un:un2,sd:sd2,ac:bac2,at:bat2,pc:bpc2,pt:bpt2,inv:binv2,cxc:bcxc2};
+  var d1={
+    vn:gv('a1-vn')*tcP, ebitda:gv('a1-ebitda')*tcP, un:gv('a1-un')*tcP, sd:gv('a1-sd')*tcP,
+    ac:gv('a1-ac')*tcC, at:gv('a1-at')*tcC, pc:gv('a1-pc')*tcC, pt:gv('a1-pt')*tcC,
+    inv:gv('a1-inv')*tcC, cxc:gv('a1-cxc')*tcC
+  };
+
+  function cr(d){return{
+    lc:sf(d.ac,d.pc), ac:sf((d.ac||0)-(d.inv||0),d.pc),
+    en:sf(d.pt,d.at), ds:sf(d.ebitda,d.sd),
+    mn:sf(d.un,d.vn), ra:sf(d.un,d.at),
+    dso:d.vn?sf(d.cxc,d.vn/365):null, ro:sf(d.vn,d.at)
+  };}
+  var r1=cr(d1), r2=cr(d2);
+
+  function scLc(v){return v===null?0:v>=2?12:v>=1.5?9:v>=1?6:v>=0.8?3:0;}
+  function scAc(v){return v===null?0:v>=1.5?8:v>=1?6:v>=0.7?4:v>=0.5?2:0;}
+  function scEn(v){return v===null?0:v<0.4?10:v<0.55?8:v<0.65?5:v<0.75?2:0;}
+  function scDs(v){return v===null?0:v>=2?10:v>=1.5?7:v>=1.2?4:v>=1?1:0;}
+  function scMn(v){return v===null?0:v>=0.1?8:v>=0.05?6:v>=0.02?3:v>=0?1:0;}
+  function scRa(v){return v===null?0:v>=0.08?7:v>=0.04?5:v>=0.01?2:v>=0?1:0;}
+  function scDso(v){return v===null?0:v<30?8:v<45?6:v<60?4:v<90?2:0;}
+  function scRo(v){return v===null?0:v>=1.5?7:v>=1?5:v>=0.7?3:v>=0.5?1:0;}
+  var sc={lc:scLc(r2.lc),ac:scAc(r2.ac),en:scEn(r2.en),ds:scDs(r2.ds),mn:scMn(r2.mn),ra:scRa(r2.ra),dso:scDso(r2.dso),ro:scRo(r2.ro)};
+
+  var lb=new Set(['en','dso']);
+  function tr(k){var a=r1[k],b=r2[k];if(!a||!b)return'f';return lb.has(k)?(b<a?'u':b>a?'d':'f'):(b>a?'u':b<a?'d':'f');}
+  var trs={};Object.keys(r2).forEach(k=>trs[k]=tr(k));
+  var mej=Object.values(trs).filter(t=>t==='u').length;
+  var det=Object.values(trs).filter(t=>t==='d').length;
+  var ta=mej>=3?5:det>=3?-5:det>=2?-3:0;
+  var sA=Math.max(0,Object.values(sc).reduce((a,b)=>a+b,0)+ta);
+  var sB=b1+b2+b3+b4, tot=Math.min(100,sA+sB);
+  var nv=tot>=75?'bajo':tot>=55?'medio':'alto';
+  var pct=nv==='bajo'?100:nv==='medio'?75:0;
+  var vv=+document.getElementById('vv').value||0;
+  var lmt=vv?vv*((gv('pp')+gv('dm'))/360)*(1+gv('iv')/100):0;
+  var laprov=Math.round(lmt*pct/100);
+  var msol=+document.getElementById('ms').value||laprov;
+  var an=msol<=75000?0:msol<=200000?1:msol<=500000?2:3;
+  var ACS=[{a:'Supervisor CC',h:'Supervisor Finanzas',m:'Hasta USD 75.000'},{a:'Supervisor CC',h:'Director A&F',m:'Hasta USD 200.000'},{a:'Director A&F',h:'Presidente',m:'Hasta USD 500.000'},{a:'Presidente',h:'Directorio',m:'Más de USD 500.000'}];
+  var vts=[
+    {l:'Pérdidas netas en ambos ejercicios',a:d1.un<0&&d2.un<0},
+    {l:'Endeudamiento &gt; 0.85 en Año 2',a:r2.en!==null&&r2.en>0.85},
+    {l:'Liquidez corriente &lt; 1.0 en ambos',a:r1.lc!==null&&r2.lc!==null&&r1.lc<1&&r2.lc<1},
+    {l:'DSCR &lt; 1.0 en Año 2',a:r2.ds!==null&&r2.ds<1},
+    {l:'Referencias desfavorables sin garantía (Sec. 4.1)',a:b3===0}
+  ];
+  var anyV=vts.some(v=>v.a);
+  var b1l={10:'Bajo (A)',7:'Moderado (B)',3:'Alto (C)',0:'Muy alto (D)'};
+  var b2l={10:'≤5 días hábiles',5:'6–15 días hábiles',2:'15–30 días',0:'>30 días/default'};
+  var b3l={6:'2+ ref. favorables',3:'1 ref. favorable',1:'Sin ref. (ext.)',0:'Ref. desfavorables'};
+  var b4l={4:'>2 años',2:'1–2 años',1:'Cliente nuevo'};
+  var nom=document.getElementById('cn').value, pai=document.getElementById('cp').value;
+  var pp1=document.getElementById('p1').value||'Año 1', pp2=document.getElementById('p2').value||'Año 2';
+  var hoy=new Date().toLocaleDateString('es-AR');
+  var nxt=new Date();nxt.setFullYear(nxt.getFullYear()+1);
+  var nxtStr=nxt.toLocaleDateString('es-AR');
+  var tcPv=mon==='USD'?'1.000000':document.getElementById('tc-p').value||'—';
+  var tcCv=mon==='USD'?'1.000000':document.getElementById('tc-c').value||'—';
+  var icns={bajo:'🟢',medio:'🟡',alto:'🔴'};
+  var decT={bajo:'Se aprueba el 100% del LMT. Historial sólido y economía estable (Sec. 2.2a).',medio:'Se aprueba hasta el 75% del LMT. Pago ≤5 días hábiles. Plazo máx. 60 días. Revisión en 6 meses (Sec. 2.2b).',alto:'Crédito rechazado. Alternativas: anticipo ≥50% + saldo contra embarque o garantía bancaria (Sec. 2.2c, 6.2).'};
+  var cbT={bajo:'Transferencia estándar / CdC confirmada (Sec. 4.1)',medio:'Transferencia con verificación / CdC Dir. Financiera (Sec. 4.2)',alto:'Pago adelantado / CdC Alta Dirección (Sec. 4.3)'};
+  var rrows=[
+    {k:'lc',n:'A.1 Liquidez Corriente',v1:fmt(r1.lc,'x'),v2:fmt(r2.lc,'x'),p:sc.lc,m:12},
+    {k:'ac',n:'A.2 Prueba Ácida',v1:fmt(r1.ac,'x'),v2:fmt(r2.ac,'x'),p:sc.ac,m:8},
+    {k:'en',n:'A.3 Endeudamiento',v1:fmt(r1.en,'x'),v2:fmt(r2.en,'x'),p:sc.en,m:10},
+    {k:'ds',n:'A.4 DSCR',v1:fmt(r1.ds,'x'),v2:fmt(r2.ds,'x'),p:sc.ds,m:10},
+    {k:'mn',n:'A.5 Margen Neto',v1:fmt(r1.mn,'pct'),v2:fmt(r2.mn,'pct'),p:sc.mn,m:8},
+    {k:'ra',n:'A.6 ROA',v1:fmt(r1.ra,'pct'),v2:fmt(r2.ra,'pct'),p:sc.ra,m:7},
+    {k:'dso',n:'A.7 Días de Cobro (DSO)',v1:fmt(r1.dso,'d'),v2:fmt(r2.dso,'d'),p:sc.dso,m:8},
+    {k:'ro',n:'A.8 Rotación de Activos',v1:fmt(r1.ro,'x'),v2:fmt(r2.ro,'x'),p:sc.ro,m:7}
+  ];
+
+  // Store result for PDF generation
+  lastResult={nom,pai,mon,pp1,pp2,hoy,nxtStr,tcPv,tcCv,msol,lmt:Math.round(lmt),laprov,pct,nv,tot,sA,sB,ta,mej,det,an,anyV,vts,r1,r2,sc,trs,rrows,b1,b2,b3,b4,b1l,b2l,b3l,b4l,ACS,decT,cbT,icns};
+
+  // Save to Google Sheets
+  var cfg=getCfg();
+  var ev={id:Date.now(),fecha:hoy,proxRevision:nxtStr,nombre:nom,pais:pai,moneda:mon,p2:pp2,monto:msol,score:tot,nivel:nv,pct:pct,limiteAprobado:laprov,lmt:Math.round(lmt),nivelAuth:an,anyVeto:anyV,sA:sA,sB:sB,analista:cfg.analista||'',detalle:JSON.stringify(lastResult)};
+  if(cfg.url){
+    fetch(cfg.url+'?action=save&data='+encodeURIComponent(JSON.stringify(ev)))
+    .then(()=>{document.getElementById('save-status').textContent='✓ Guardado en historial compartido';})
+    .catch(()=>{document.getElementById('save-status').textContent='⚠ Guardado local (sin conexión al Sheet)';});
+  }
+  // Always save locally too as backup
+  var local=JSON.parse(localStorage.getItem('credit_evals_backup')||'[]');
+  local.unshift(ev); if(local.length>200) local=local.slice(0,200);
+  localStorage.setItem('credit_evals_backup',JSON.stringify(local));
+  document.getElementById('hcount').textContent='…';
+
+  // Build internal result HTML
+  document.getElementById('rc').innerHTML=
+    '<div class="rh"><div>'+
+    '<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.32);margin-bottom:3px">Evaluación — Sec. 4.1</div>'+
+    '<div style="font-family:\'DM Serif Display\',serif;font-size:19px;color:#fff;margin-bottom:1px">'+nom+'</div>'+
+    '<div style="font-size:11px;color:rgba(255,255,255,.5)">'+pai+' · '+mon+' · '+pp1+' → '+pp2+' · <strong style="color:var(--acc)">USD '+msol.toLocaleString('es-AR')+'</strong></div>'+
+    '</div><div style="text-align:right"><div style="font-size:9px;color:rgba(255,255,255,.32)">Fecha</div><div style="font-family:\'DM Mono\',monospace;font-size:12px;color:rgba(255,255,255,.8)">'+hoy+'</div><div style="font-size:9px;color:rgba(255,255,255,.22);margin-top:1px">Vigencia: 12 meses</div></div></div>'+
+    (anyV?'<div class="vbanner"><span style="font-size:18px">🚨</span><div><strong style="color:#991b1b;font-size:12px;display:block;margin-bottom:2px">Factor de Veto — Revisión obligatoria (Sec. 4.1 y 6.2)</strong><p style="font-size:11px;color:#7f1d1d">Escalar a Gerencia Financiera.</p></div></div>':'')+
+    '<div class="sem '+nv+'">'+
+    '<div style="text-align:center;min-width:62px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--g600);margin-bottom:1px">Score</div><div class="sem-sc">'+tot+'<span>/100</span></div></div>'+
+    '<div class="sem-div"></div>'+
+    '<div style="flex:1"><div class="sem-nv">'+icns[nv]+' '+(nv==='bajo'?'RIESGO BAJO':nv==='medio'?'RIESGO MODERADO':'RIESGO ALTO')+'</div>'+
+    '<div style="font-size:12px;color:var(--g600);line-height:1.5;margin-bottom:4px">'+decT[nv]+'</div>'+
+    '<div class="sem-cb">💳 '+cbT[nv]+'</div>'+
+    '<div style="margin-top:4px;font-size:11px;color:var(--g600)">Nivel autorización: <strong>Nivel '+(an+1)+'</strong> — '+ACS[an].a+' / '+ACS[an].h+' ('+ACS[an].m+')</div></div>'+
+    (lmt>0?'<div class="sem-div"></div><div style="text-align:center;min-width:125px">'+
+    '<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--g600);margin-bottom:2px">LMT</div>'+
+    '<div style="font-family:\'DM Mono\',monospace;font-size:13px;font-weight:600;color:var(--navy)">USD '+Math.round(lmt).toLocaleString('es-AR')+'</div>'+
+    '<div style="font-size:10px;color:var(--g600);margin-top:3px">Límite aprobado ('+pct+'%)</div>'+
+    '<div style="font-family:\'DM Mono\',monospace;font-size:16px;font-weight:700;color:'+(nv==='alto'?'var(--re)':nv==='medio'?'var(--ye)':'var(--gr)')+'">'+
+    (pct===0?'Rechazado':'USD '+laprov.toLocaleString('es-AR'))+'</div></div>':'')+
+    '</div>'+
+    '<div class="bg2"><div class="bc"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><div><div style="font-weight:600;color:var(--navy);font-size:12px">Bloque A — Financiero</div><div style="font-size:10px;color:var(--g400)">Máx. 70 pts · Tendencia: '+(ta>=0?'+':'')+ta+'</div></div><div style="font-family:\'DM Mono\',monospace;font-size:24px;font-weight:500;color:var(--navy)">'+sA+'</div></div><div class="bb"><div style="height:100%;width:'+Math.max(0,sA/70*100)+'%;background:linear-gradient(90deg,#1d4ed8,#3b82f6);border-radius:99px"></div></div></div>'+
+    '<div class="bc"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><div><div style="font-weight:600;color:var(--navy);font-size:12px">Bloque B — Cualitativo</div><div style="font-size:10px;color:var(--g400)">Máx. 30 pts</div></div><div style="font-family:\'DM Mono\',monospace;font-size:24px;font-weight:500;color:var(--navy)">'+sB+'</div></div><div class="bb"><div style="height:100%;width:'+sB/30*100+'%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:99px"></div></div></div></div>'+
+    '<div class="card"><div class="ct">Ratios — Bloque A</div><div class="cs">'+pp1+' vs '+pp2+' · Puntaje sobre '+pp2+'</div>'+
+    '<table><thead><tr><th>Ratio</th><th></th><th style="text-align:center">'+pp1+'</th><th style="text-align:center">'+pp2+'</th><th style="text-align:center">Tend.</th><th style="text-align:center">Puntaje</th></tr></thead><tbody>'+
+    rrows.map(r=>'<tr><td class="rn">'+r.n+'</td><td>'+tip(r.k)+'</td><td class="rv" style="text-align:center">'+r.v1+'</td><td class="rv" style="text-align:center;font-weight:600">'+r.v2+'</td><td style="text-align:center">'+tH(trs[r.k])+'</td><td style="text-align:center">'+chip(r.p,r.m)+'</td></tr>').join('')+
+    '<tr style="background:var(--g50)"><td colspan="5" style="font-weight:600;color:var(--navy)">Ajuste tendencia ('+mej+' mejoras · '+det+' deterioros)</td><td style="text-align:center">'+chip(ta,5)+'</td></tr>'+
+    '</tbody></table></div>'+
+    '<div class="card"><div class="ct">Bloque B</div><table><thead><tr><th>Variable</th><th>Valor</th><th style="text-align:center">Pts</th></tr></thead><tbody>'+
+    [['B.1 Riesgo País',b1l[b1],b1,10],['B.2 Historial',b2l[b2],b2,10],['B.3 Referencias',b3l[b3],b3,6],['B.4 Trayectoria',b4l[b4],b4,4]].map(x=>'<tr><td class="rn">'+x[0]+'</td><td style="color:var(--g600)">'+x[1]+'</td><td style="text-align:center">'+chip(x[2],x[3])+'</td></tr>').join('')+
+    '</tbody></table></div>'+
+    '<div class="card"><div class="ct">Nivel de Autorización — Sec. 5</div>'+
+    '<table><thead><tr><th>Nivel</th><th>Asignación</th><th>Habilitación</th><th>Monto</th></tr></thead><tbody>'+
+    ACS.map((a,i)=>'<tr style="background:'+(i===an?'var(--yl)':i%2===0?'#fff':'var(--g50)')+'"><td style="text-align:center">'+(i===an?'<span style="background:var(--acc);color:var(--navy);font-weight:700;border-radius:4px;padding:1px 6px;font-size:11px">Nivel '+(i+1)+' ◀</span>':'Nivel '+(i+1))+'</td><td>'+a.a+'</td><td>'+a.h+'</td><td>'+a.m+'</td></tr>').join('')+
+    '</tbody></table></div>'+
+    '<div class="card"><div class="ct">Factores de Veto</div>'+
+    '<ul class="vl">'+vts.map(v=>'<li class="vi '+(v.a?'val':'vok')+'"><span>'+(v.a?'⚠️':'✓')+'</span><span style="flex:1">'+v.l+'</span><span style="font-family:\'DM Mono\',monospace;font-size:10px">'+(v.a?'VETO':'OK')+'</span></li>').join('')+'</ul></div>'+
+    '<div class="sf-box"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#3730a3;margin-bottom:9px">☁️ Campos para Salesforce</div>'+
+    '<div class="g2">'+
+    [['Categorización de Riesgo',nv==='bajo'?'Nivel de Riesgo Bajo':nv==='medio'?'Nivel de Riesgo Medio':'Nivel de Riesgo Alto'],
+     ['Límite Máximo',pct===0?'Rechazado':'USD '+laprov.toLocaleString('es-AR')],
+     ['Fecha Revisión',hoy],['Próxima Revisión',nxtStr],
+     ['Score Total',tot+'/100'],['Nivel Auth','Nivel '+(an+1)+' — '+ACS[an].a],
+     ['Veto Activo',anyV?'Sí — Revisión obligatoria':'No'],['Balance Anual','Adjuntar PDF impreso']
+    ].map(x=>'<div><div class="sf-f">'+x[0]+'</div><div class="sf-v">'+x[1]+'</div></div>').join('')+
+    '</div></div>';
+
+  goS(4);
+}
+
+// ── PRINT INTERNAL ────────────────────────────────────────────────────────────
+function printInternal(){
+  var orig=document.getElementById('rc').innerHTML;
+  var win=window.open('','_blank');
+  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Evaluación Interna</title>'+
+    '<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">'+
+    '<style>'+document.querySelector('style').textContent+'body{padding:24px;max-width:900px;margin:0 auto}@media print{body{padding:8px}}</style></head>'+
+    '<body>'+orig+'</body></html>');
+  win.document.close();
+  win.onload=function(){win.print();};
+}
+
+// ── PRINT CLIENT (English) ────────────────────────────────────────────────────
+function printClient(){
+  if(!lastResult){alert('No hay resultado para exportar.');return;}
+  var R=lastResult;
+  var lvlMap={bajo:{title:'LOW RISK',color:'#059669',bg:'#d1fae5',border:'#6ee7b7',dec:'Your company has demonstrated strong financial health. Your credit application has been approved.'},
+    medio:{title:'MODERATE RISK',color:'#d97706',bg:'#fef9c3',border:'#fcd34d',dec:'Your company shows an acceptable financial profile. Credit has been conditionally approved with certain terms.'},
+    alto:{title:'HIGH RISK',color:'#dc2626',bg:'#fee2e2',border:'#fca5a5',dec:'After reviewing your financial statements, we are unable to approve the credit request under standard conditions at this time. Please see below for alternative options.'}};
+  var lv=lvlMap[R.nv];
+  var decisionText=R.nv==='bajo'
+    ?'We are pleased to approve a credit limit of <strong>USD '+R.laprov.toLocaleString('en-US')+'</strong>, representing 100% of your assessed credit capacity.'
+    :R.nv==='medio'
+    ?'We are approving a credit limit of <strong>USD '+R.laprov.toLocaleString('en-US')+'</strong> (75% of your assessed capacity), subject to the following conditions:<ul style="margin-top:8px;padding-left:20px"><li>Payment terms: maximum 60 days</li><li>Payment via wire transfer with identity verification, or confirmed letter of credit subject to Financial Director approval</li><li>Account review in 6 months</li></ul>'
+    :'We regret that we are unable to extend credit under our standard terms at this time. The following alternative arrangements are available:<ul style="margin-top:8px;padding-left:20px"><li><strong>Option A:</strong> Advance payment of 50% or more, with the balance due upon shipment</li><li><strong>Option B:</strong> Bank guarantee or confirmed letter of credit, subject to Senior Management approval</li></ul>';
+  var ratioExpl={
+    lc:'<strong>Current Ratio</strong> — Measures the ability to pay short-term obligations using current assets.',
+    ac:'<strong>Quick Ratio</strong> — Similar to the current ratio but excluding inventory, reflecting more immediate liquidity.',
+    en:'<strong>Debt Ratio</strong> — Proportion of total assets financed by debt. Lower is better.',
+    ds:'<strong>DSCR</strong> — Debt Service Coverage Ratio: ability to cover debt payments with operating income.',
+    mn:'<strong>Net Margin</strong> — Net profit as a percentage of revenue.',
+    ra:'<strong>Return on Assets (ROA)</strong> — Efficiency in generating profit from assets.',
+    dso:'<strong>Days Sales Outstanding</strong> — Average number of days to collect receivables.',
+    ro:'<strong>Asset Turnover</strong> — Revenue generated per unit of total assets.'
+  };
+  var ratioRows=R.rrows.map(function(r){
+    var trend=R.trs[r.k]==='u'?'↑ Improving':R.trs[r.k]==='d'?'↓ Declining':'→ Stable';
+    var tc=R.trs[r.k]==='u'?'#059669':R.trs[r.k]==='d'?'#dc2626':'#94a3b8';
+    var assessment=R.trs[r.k]==='u'?'Positive trend — this indicator improved year-over-year.':
+                   R.trs[r.k]==='d'?'This indicator declined compared to the prior year.':
+                   'This indicator remained stable compared to the prior year.';
+    return '<tr><td style="padding:10px 14px"><div style="font-weight:600;color:#0f1f3d;font-size:13px">'+r.n+'</div><div style="font-size:11px;color:#94a3b8;margin-top:2px">'+ratioExpl[r.k]+'</div></td>'+
+      '<td style="padding:10px 14px;text-align:center;font-family:monospace;font-size:13px">'+r.v1+'</td>'+
+      '<td style="padding:10px 14px;text-align:center;font-family:monospace;font-size:13px;font-weight:700">'+r.v2+'</td>'+
+      '<td style="padding:10px 14px;text-align:center;font-size:12px;font-weight:600;color:'+tc+'">'+trend+'</td>'+
+      '<td style="padding:10px 14px;font-size:11px;color:#475569">'+assessment+'</td>'+
+      '</tr>';
+  }).join('');
+
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'+
+    '<title>Credit Assessment — '+R.nom+'</title>'+
+    '<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">'+
+    '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:\'Instrument Sans\',sans-serif;background:#fff;color:#1e293b;padding:40px;max-width:860px;margin:0 auto}@media print{body{padding:16px}}h1,h2,h3{font-family:\'DM Serif Display\',serif}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #e2e8f0}</style>'+
+    '</head><body>'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:20px;border-bottom:3px solid #0f1f3d">'+
+      '<div><h1 style="font-size:28px;color:#0f1f3d;margin-bottom:4px">Credit Assessment Report</h1>'+
+      '<div style="font-size:13px;color:#94a3b8">Confidential · Prepared by International Credit Department</div></div>'+
+      '<div style="text-align:right"><div style="font-size:11px;color:#94a3b8">Date</div><div style="font-family:monospace;font-size:14px;font-weight:600;color:#0f1f3d">'+R.hoy+'</div>'+
+      '<div style="font-size:11px;color:#94a3b8;margin-top:4px">Valid for 12 months</div></div>'+
+    '</div>'+
+
+    '<div style="margin-bottom:28px">'+
+      '<h2 style="font-size:18px;color:#0f1f3d;margin-bottom:12px">Client Information</h2>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">'+
+      [['Company',R.nom],['Country',R.pai],['Financial Statements Period',R.pp2],
+       ['Requested Amount','USD '+R.msol.toLocaleString('en-US')],['Currency',R.mon],['Assessment Date',R.hoy]].map(x=>
+        '<div style="background:#f8fafc;border-radius:8px;padding:12px 14px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:3px">'+x[0]+'</div><div style="font-size:14px;font-weight:600;color:#0f1f3d">'+x[1]+'</div></div>').join('')+
+      '</div></div>'+
+
+    '<div style="background:'+lv.bg+';border:2px solid '+lv.border+';border-radius:14px;padding:24px;margin-bottom:28px">'+
+      '<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">'+
+        '<div style="width:1px;background:rgba(0,0,0,.1);align-self:stretch;display:none"></div>'+
+        '<div style="flex:1">'+
+          '<div style="font-size:20px;font-weight:800;color:'+lv.color+';margin-bottom:6px">'+lv.title+'</div>'+
+          '<div style="font-size:13px;color:#475569;line-height:1.6;margin-bottom:10px">'+decisionText+'</div>'+
+        '</div>'+
+        (R.lmt>0?'<div style="width:1px;background:rgba(0,0,0,.1);align-self:stretch"></div>'+
+        '<div style="text-align:center;min-width:130px">'+
+          '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#475569;margin-bottom:3px">Approved Limit</div>'+
+          '<div style="font-family:monospace;font-size:20px;font-weight:700;color:'+lv.color+'">'+
+          (R.pct===0?'Not approved':'USD '+R.laprov.toLocaleString('en-US'))+'</div>'+
+          '<div style="font-size:11px;color:#475569;margin-top:2px">'+R.pct+'% of assessed capacity</div>'+
+        '</div>':'')+
+      '</div>'+
+    '</div>'+
+
+    '<div style="margin-bottom:28px">'+
+      '<h2 style="font-size:18px;color:#0f1f3d;margin-bottom:4px">Financial Analysis</h2>'+
+      '<div style="font-size:12px;color:#94a3b8;margin-bottom:14px">Based on financial statements for '+R.pp1+' and '+R.pp2+'. Scores reflect the most recent period.</div>'+
+      '<table>'+
+        '<thead><tr style="background:#f8fafc">'+
+          '<th style="padding:10px 14px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#475569">Indicator</th>'+
+          '<th style="padding:10px 14px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#475569">'+R.pp1+'</th>'+
+          '<th style="padding:10px 14px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#475569">'+R.pp2+'</th>'+
+          '<th style="padding:10px 14px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#475569">Trend</th>'+
+          '<th style="padding:10px 14px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#475569">Assessment</th>'+
+        '</tr></thead>'+
+        '<tbody>'+ratioRows+'</tbody>'+
+      '</table>'+
+    '</div>'+
+
+    (R.anyV?'<div style="background:#fef2f2;border:2px solid #fecaca;border-radius:12px;padding:18px;margin-bottom:28px">'+
+      '<h3 style="font-size:15px;color:#991b1b;margin-bottom:8px">⚠ Important Notice</h3>'+
+      '<p style="font-size:13px;color:#7f1d1d;line-height:1.6">During our review, we identified certain financial indicators that require attention. These factors have been considered in our credit decision and may require additional documentation or guarantees before any credit arrangement can be finalized.</p>'+
+    '</div>':'')+
+
+    '<div style="margin-bottom:28px">'+
+      '<h2 style="font-size:18px;color:#0f1f3d;margin-bottom:10px">Next Steps</h2>'+
+      '<div style="font-size:13px;color:#475569;line-height:1.8">'+
+      (R.nv==='bajo'?
+        '✅ Your credit line has been approved. Our commercial team will contact you to finalize the payment terms and conditions.<br>📅 This assessment is valid for <strong>12 months</strong> from the date above. A renewal will be required upon expiry.':
+      R.nv==='medio'?
+        '📋 To finalize your credit arrangement, please contact your account manager to confirm the payment method (wire transfer with verification or letter of credit).<br>📅 A review will be conducted in <strong>6 months</strong>. Please ensure your account remains in good standing.':
+        '📞 We encourage you to contact our commercial team to discuss the alternative arrangements detailed above.<br>📋 If your financial situation changes significantly, you are welcome to reapply after <strong>6 months</strong>.')+
+      '</div>'+
+    '</div>'+
+
+    '<div style="border-top:1px solid #e2e8f0;padding-top:16px;display:flex;justify-content:space-between;align-items:center">'+
+      '<div style="font-size:11px;color:#94a3b8">This document is confidential and prepared exclusively for '+R.nom+'. It is valid until '+R.nxtStr+'.</div>'+
+      '<div style="font-size:11px;color:#94a3b8">International Credit Department</div>'+
+    '</div>'+
+    '</body></html>';
+
+  var win=window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+  win.onload=function(){win.print();};
+}
+
+// ── HISTORY ───────────────────────────────────────────────────────────────────
+var cachedHistory=[];
+
+async function refreshHistory(){
+  var cfg=getCfg();
+  document.getElementById('hcont').innerHTML='<div style="text-align:center;padding:32px;color:var(--g400)">⏳ Cargando...</div>';
+  document.getElementById('hist-sub').textContent='Sincronizando con Google Sheets...';
+  if(window.location.protocol==='file:'||!cfg.url){
+    // Fallback to local backup
+    cachedHistory=JSON.parse(localStorage.getItem('credit_evals_backup')||'[]');
+    document.getElementById('hist-sub').textContent='⚠ Sin Google Sheet configurado. Mostrando respaldo local.';
+    renderHistory(cachedHistory);
+    return;
+  }
+  try{
+    var res=await fetch(cfg.url+'?t='+Date.now());
+    var rows=await res.json();
+    // Map sheet columns to our object
+    cachedHistory=rows.map(function(r){
+      return{
+        id:r['ID'],fecha:r['Fecha'],nombre:r['Cliente'],pais:r['País'],moneda:r['Moneda'],
+        p2:r['Período'],monto:+r['Monto']||0,score:+r['Score']||0,nivel:r['Nivel']||'bajo',
+        pct:+r['%']||0,limiteAprobado:+r['Límite Aprobado']||0,lmt:+r['LMT']||0,
+        proxRevision:r['Próx. Revisión'],anyVeto:r['Veto']==='SÍ',
+        nivelAuth:+(r['Nivel Auth']||'1').replace('Nivel ','')-1||0,
+        sA:+r['Score A']||0,sB:+r['Score B']||0,analista:r['Analista']||'',
+        detalle:r['Detalle']||''
+      };
+    }).reverse();
+    document.getElementById('hist-sub').textContent='✓ '+cachedHistory.length+' evaluaciones · Actualizado '+new Date().toLocaleTimeString('es-AR');
+    renderHistory(cachedHistory);
+    document.getElementById('hcount').textContent=cachedHistory.length;
+  }catch(e){
+    cachedHistory=JSON.parse(localStorage.getItem('credit_evals_backup')||'[]');
+    document.getElementById('hist-sub').textContent='⚠ Error al conectar con Sheet. Mostrando respaldo local.';
+    renderHistory(cachedHistory);
+  }
+}
+
+function daysUntil(str){
+  if(!str)return null;
+  var d;
+  if(str.indexOf('/')!==-1){
+    // dd/mm/yyyy
+    var p=str.split('/');
+    if(p.length!==3)return null;
+    d=new Date(+p[2],+p[1]-1,+p[0]);
+  } else {
+    // ISO format: 2027-03-30T... or 2027-03-30
+    d=new Date(str);
+  }
+  if(isNaN(d.getTime()))return null;
+  return Math.ceil((d-new Date())/86400000);
+}
+
+function fmtDate(str){
+  if(!str)return '—';
+  var d;
+  if(str.indexOf('/')!==-1) return str; // already dd/mm/yyyy
+  d=new Date(str);
+  if(isNaN(d.getTime()))return str;
+  return d.toLocaleDateString('es-AR');
+}
+
+function renderHistory(evs){
+  document.getElementById('hcount').textContent=evs.length;
+  var cont=document.getElementById('hcont');
+  var alert=document.getElementById('h-alert');
+  var prox=evs.filter(function(e){var d=daysUntil(e.proxRevision);return d!==null&&d<=30&&d>=0;});
+  if(prox.length){
+    alert.innerHTML='<div style="background:var(--yl);border:1px solid var(--yb);border-radius:9px;padding:10px 14px;margin-bottom:12px;display:flex;gap:9px;align-items:center">'+
+      '<span style="font-size:18px">⏰</span><div><strong style="color:var(--ye)">'+prox.length+' evaluación'+(prox.length>1?'es':'')+' próxima'+(prox.length>1?'s':'')+' a vencer (≤30 días):</strong>'+
+      '<div style="font-size:11px;color:#92400e;margin-top:2px">'+prox.map(e=>e.nombre+' ('+daysUntil(e.proxRevision)+'d)').join(' · ')+'</div></div></div>';
+  } else { alert.innerHTML=''; }
+  if(!evs.length){
+    cont.innerHTML='<div style="text-align:center;padding:48px 20px;color:var(--g400)"><div style="font-size:38px;margin-bottom:10px">📋</div><div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:5px">Sin evaluaciones</div><div style="font-size:12px">Completá una evaluación y aparecerá aquí automáticamente.</div></div>';
+    return;
+  }
+  var icns={bajo:'🟢',medio:'🟡',alto:'🔴'};
+  var bgM={bajo:'var(--gl)',medio:'var(--yl)',alto:'var(--rl)'};
+  cont.innerHTML=evs.map(function(ev){
+    var dias=daysUntil(ev.proxRevision);
+    var vc=dias===null?'var(--g400)':dias<=0?'var(--re)':dias<=30?'var(--ye)':'var(--gr)';
+    return '<div class="hcard">'+
+      '<div class="hbadge '+ev.nivel+'">'+icns[ev.nivel]+'</div>'+
+      '<div style="flex:1;min-width:150px">'+
+        '<div style="font-weight:600;color:var(--navy);font-size:13px">'+ev.nombre+'</div>'+
+        '<div style="font-size:11px;color:var(--g400);margin-top:1px">'+ev.pais+' · '+ev.moneda+' · '+ev.p2+' · USD '+ev.monto.toLocaleString('es-AR')+(ev.analista?' · '+ev.analista:'')+'</div>'+
+        '<div style="font-size:10px;color:var(--g400);margin-top:1px">'+ev.fecha+' · '+(ev.pct===0?'Rechazado':'USD '+ev.limiteAprobado.toLocaleString('es-AR'))+(ev.anyVeto?' · <span style="color:var(--re);font-weight:700">⚠ Veto</span>':'')+'</div>'+
+      '</div>'+
+      '<div style="text-align:center;min-width:65px">'+
+        '<div style="font-size:9px;color:var(--g400)">Score</div>'+
+        '<div style="font-family:\'DM Mono\',monospace;font-size:19px;font-weight:700;color:var(--navy)">'+ev.score+'</div>'+
+        '<div style="font-size:9px;color:var(--g400)">/100</div>'+
+      '</div>'+
+      '<div style="text-align:center;min-width:80px">'+
+        '<div style="font-size:9px;color:var(--g400)">Próx. revisión</div>'+
+        '<div style="font-family:\'DM Mono\',monospace;font-size:11px;font-weight:600;color:'+vc+'">'+fmtDate(ev.proxRevision)+'</div>'+
+        (dias!==null?'<div style="font-size:9px;color:'+vc+';">'+(dias<=0?'VENCIDA':dias+'d')+'</div>':'')+
+      '</div>'+
+      (ev.detalle?'<button onclick="dlReport(\''+ev.id+'\',\'internal\')" title="Descargar informe interno" style="background:none;border:none;color:var(--navy);cursor:pointer;font-size:13px;padding:4px 5px">📄</button>'+
+      '<button onclick="dlReport(\''+ev.id+'\',\'client\')" title="Descargar informe para el cliente (EN)" style="background:none;border:none;color:#059669;cursor:pointer;font-size:13px;padding:4px 5px">📤</button>':'')+
+      '<button onclick="reqPin(\'del\',\''+ev.id+'\')" style="background:none;border:none;color:var(--g400);cursor:pointer;font-size:14px;padding:4px 6px">🗑</button>'+
+    '</div>';
+  }).join('');
+}
+
+// ── EXPORT EXCEL (XLSX real via SheetJS) ─────────────────────────────────────
+function exportExcel(){
+  var evs=cachedHistory.length?cachedHistory:JSON.parse(localStorage.getItem('credit_evals_backup')||'[]');
+  if(!evs.length){alert('No hay evaluaciones para exportar.');return;}
+
+  // Load SheetJS dynamically if not already loaded
+  function doExport(){
+    var XLSX=window.XLSX;
+    var nMap={bajo:'RIESGO BAJO',medio:'RIESGO MODERADO',alto:'RIESGO ALTO'};
+    var nColor={bajo:'FF059669',medio:'FFD97706',alto:'FFDC2626'};
+    var nBg={bajo:'FFD1FAE5',medio:'FFFEF9C3',alto:'FFFEE2E2'};
+
+    var heads=['Cliente','País','Moneda','Período','Monto Solicitado (USD)','Score /100','Nivel de Riesgo','Límite Aprobado (USD)','LMT Calculado','% Aprobado','Fecha Evaluación','Próxima Revisión','Días para Vencimiento','Veto Activo','Nivel Autorización','Score Bloque A','Score Bloque B','Analista'];
+
+    var data=[heads];
+    evs.forEach(function(e){
+      var dias=daysUntil(e.proxRevision);
+      data.push([
+        e.nombre, e.pais, e.moneda, e.p2,
+        e.monto||0, e.score||0,
+        nMap[e.nivel]||e.nivel,
+        e.pct===0?'Rechazado':(e.limiteAprobado||0),
+        e.lmt||0, (e.pct||0)+'%',
+        e.fecha||'', fmtDate(e.proxRevision)||'',
+        dias===null?'':(dias<=0?'VENCIDA':dias),
+        e.anyVeto?'SÍ':'No',
+        'Nivel '+(( e.nivelAuth||0)+1),
+        e.sA||0, e.sB||0, e.analista||''
+      ]);
+    });
+
+    var ws=XLSX.utils.aoa_to_sheet(data);
+
+    // Column widths
+    ws['!cols']=[
+      {wch:28},{wch:14},{wch:8},{wch:14},{wch:20},{wch:10},
+      {wch:18},{wch:20},{wch:18},{wch:10},{wch:16},{wch:16},
+      {wch:18},{wch:10},{wch:16},{wch:12},{wch:12},{wch:16}
+    ];
+
+    // Style header row
+    var range=XLSX.utils.decode_range(ws['!ref']);
+    for(var C=range.s.c;C<=range.e.c;C++){
+      var addr=XLSX.utils.encode_cell({r:0,c:C});
+      if(!ws[addr]) continue;
+      ws[addr].s={
+        font:{bold:true,color:{rgb:'FFFFFFFF'}},
+        fill:{fgColor:{rgb:'FF0F1F3D'}},
+        alignment:{horizontal:'center',vertical:'center',wrapText:true},
+        border:{bottom:{style:'medium',color:{rgb:'FFF59E0B'}}}
+      };
+    }
+
+    // Style data rows
+    for(var R=1;R<=range.e.r;R++){
+      var ev=evs[R-1];
+      var nivel=ev?ev.nivel:'bajo';
+      var bg=R%2===0?'FFF8FAFC':'FFFFFFFF';
+
+      for(var CC=range.s.c;CC<=range.e.c;CC++){
+        var a=XLSX.utils.encode_cell({r:R,c:CC});
+        if(!ws[a]) ws[a]={t:'s',v:''};
+        ws[a].s=ws[a].s||{};
+        ws[a].s.fill={fgColor:{rgb:bg}};
+        ws[a].s.border={
+          top:{style:'thin',color:{rgb:'FFE2E8F0'}},
+          bottom:{style:'thin',color:{rgb:'FFE2E8F0'}},
+          left:{style:'thin',color:{rgb:'FFE2E8F0'}},
+          right:{style:'thin',color:{rgb:'FFE2E8F0'}}
+        };
+        ws[a].s.alignment={vertical:'center'};
+        // Nivel column (col 6) - colored
+        if(CC===6){
+          ws[a].s.font={bold:true,color:{rgb:nColor[nivel]||'FF000000'}};
+          ws[a].s.fill={fgColor:{rgb:nBg[nivel]||'FFFFFFFF'}};
+          ws[a].s.alignment={horizontal:'center',vertical:'center'};
+        }
+        // Score column (col 5) - bold
+        if(CC===5){ws[a].s.font={bold:true};ws[a].s.alignment={horizontal:'center',vertical:'center'};}
+        // Dias column (col 12) - color by urgency
+        if(CC===12&&ev){
+          var dias2=daysUntil(ev.proxRevision);
+          if(dias2!==null){
+            var dColor=dias2<=0?'FFDC2626':dias2<=30?'FFD97706':'FF059669';
+            var dBg=dias2<=0?'FFFEE2E2':dias2<=30?'FFFEF9C3':'FFD1FAE5';
+            ws[a].s.font={bold:true,color:{rgb:dColor}};
+            ws[a].s.fill={fgColor:{rgb:dBg}};
+            ws[a].s.alignment={horizontal:'center',vertical:'center'};
+          }
+        }
+        // Veto column (col 13)
+        if(CC===13&&ev&&ev.anyVeto){
+          ws[a].s.font={bold:true,color:{rgb:'FFDC2626'}};
+        }
+      }
+    }
+
+    // Freeze header row
+    ws['!freeze']={xSplit:0,ySplit:1};
+
+    var wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Evaluaciones');
+
+    // Summary sheet
+    var summary=[
+      ['RESUMEN DEL HISTORIAL DE CRÉDITO',''],
+      ['Generado el',new Date().toLocaleDateString('es-AR')],
+      ['Total evaluaciones',evs.length],
+      ['Riesgo Bajo',evs.filter(function(e){return e.nivel==='bajo';}).length],
+      ['Riesgo Moderado',evs.filter(function(e){return e.nivel==='medio';}).length],
+      ['Riesgo Alto',evs.filter(function(e){return e.nivel==='alto';}).length],
+      ['Con Veto Activo',evs.filter(function(e){return e.anyVeto;}).length],
+      ['Vencidas',evs.filter(function(e){var d=daysUntil(e.proxRevision);return d!==null&&d<=0;}).length],
+      ['Vencen en 30 días',evs.filter(function(e){var d=daysUntil(e.proxRevision);return d!==null&&d>0&&d<=30;}).length],
+    ];
+    var ws2=XLSX.utils.aoa_to_sheet(summary);
+    ws2['!cols']=[{wch:24},{wch:18}];
+    XLSX.utils.book_append_sheet(wb,ws2,'Resumen');
+
+    XLSX.writeFile(wb,'evaluaciones_credito_'+new Date().toISOString().split('T')[0]+'.xlsx');
+  }
+
+  if(window.XLSX){
+    doExport();
+  } else {
+    var s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload=doExport;
+    s.onerror=function(){alert('No se pudo cargar la librería de Excel. Verificá tu conexión a internet.');};
+    document.head.appendChild(s);
+  }
+}
+
+// ── PIN ───────────────────────────────────────────────────────────────────────
+var pinAction=null, pinParam=null;
+function reqPin(action, param){
+  pinAction=action; pinParam=param;
+  var msgs={del:'Ingresá el PIN para eliminar esta evaluación.',clearAll:'Ingresá el PIN para borrar todo el historial.'};
+  document.getElementById('pin-msg').textContent=msgs[action]||'PIN requerido.';
+  document.getElementById('pin-input').value='';
+  document.getElementById('pin-err').style.display='none';
+  document.getElementById('pin-modal').classList.add('show');
+  setTimeout(()=>document.getElementById('pin-input').focus(),100);
+}
+function closePin(){
+  document.getElementById('pin-modal').classList.remove('show');
+  pinAction=null; pinParam=null;
+}
+async function checkPIN(){
+  var val=document.getElementById('pin-input').value;
+  if(val.length<4) return;
+  var action=pinAction, param=pinParam;
+  var ok=false;
+  if(action==='del') ok=await doDelete(param,val);
+  else if(action==='clearAll') ok=await doClear(val);
+  if(ok){ closePin(); }
+  else { document.getElementById('pin-err').style.display='block'; document.getElementById('pin-input').value=''; }
+}
+async function doDelete(id,pin){
+  var cfg=getCfg();
+  if(cfg.url){
+    try{
+      var res=await fetch(cfg.url+'?action=delete&id='+encodeURIComponent(String(id))+'&pin='+encodeURIComponent(pin||''));
+      var json=await res.json();
+      if(json.ok===false) return false;
+    }catch(e){}
+  }
+  var local=JSON.parse(localStorage.getItem('credit_evals_backup')||'[]').filter(function(e){return String(e.id)!==String(id);});
+  localStorage.setItem('credit_evals_backup',JSON.stringify(local));
+  await new Promise(function(r){setTimeout(r,800);});
+  await refreshHistory();
+  return true;
+}
+async function doClear(pin){
+  var cfg=getCfg();
+  if(cfg.url){
+    try{
+      var res=await fetch(cfg.url+'?action=clear&pin='+encodeURIComponent(pin||''));
+      var json=await res.json();
+      if(json.ok===false) return false;
+    }catch(e){}
+  }
+  localStorage.removeItem('credit_evals_backup');
+  await new Promise(function(r){setTimeout(r,800);});
+  await refreshHistory();
+  return true;
+}
+
+// ── DOWNLOAD FROM HISTORY ─────────────────────────────────────────────────────
+function dlReport(id, type){
+  var ev=cachedHistory.find(function(e){return String(e.id)===String(id);});
+  if(!ev||!ev.detalle){alert('Detalle no disponible para esta evaluación.');return;}
+  try{
+    var saved=JSON.parse(ev.detalle);
+    var prev=lastResult;
+    lastResult=saved;
+    if(type==='internal') printInternal();
+    else printClient();
+    lastResult=prev;
+  }catch(e){alert('Error al cargar el detalle de la evaluación.');}
+}
+
+// ── TEST CONNECTION ───────────────────────────────────────────────────────────
+async function testConnection(){
+  var url=document.getElementById('cfg-url').value.trim();
+  if(!url){document.getElementById('cfg-test').innerHTML='<span style="color:var(--re)">Ingresá la URL primero.</span>';return;}
+  if(window.location.protocol==='file:'){
+    document.getElementById('cfg-test').innerHTML='<span style="color:var(--ye)">⚠ Estás abriendo el archivo de forma local (file://). Google Sheets no puede conectarse así. Subí el archivo a un servidor o GitHub Pages para habilitar el historial compartido. <a href="#github-guide" style="color:var(--bl)">Ver instrucciones abajo.</a></span>';
+    return;
+  }
+  document.getElementById('cfg-test').innerHTML='⏳ Probando...';
+  try{
+    var res=await fetch(url+'?t='+Date.now());
+    var data=await res.json();
+    document.getElementById('cfg-test').innerHTML='<span style="color:var(--gr)">✓ Conexión exitosa. Se encontraron '+data.length+' registros.</span>';
+    saveCfg();
+  }catch(e){
+    document.getElementById('cfg-test').innerHTML='<span style="color:var(--re)">✗ Error: '+e.message+'. Verificá la URL y que el script esté publicado para "Cualquier persona".</span>';
+  }
+}
+
+// ── COPY SCRIPT ───────────────────────────────────────────────────────────────
+function copyScript(){
+  var txt=document.getElementById('script-block').textContent;
+  navigator.clipboard.writeText(txt).then(function(){
+    document.getElementById('copy-ok').style.display='block';
+    setTimeout(()=>document.getElementById('copy-ok').style.display='none',2000);
+  });
+}
+
+// ── IMPORT ────────────────────────────────────────────────────────────────────
+function doImport(){
+  var code=document.getElementById('import-code').value.trim();
+  var err=document.getElementById('import-err');
+  try{
+    var data=JSON.parse(atob(code));
+    // Fill form fields
+    if(data.nombre) document.getElementById('cn').value=data.nombre;
+    if(data.pais)   document.getElementById('cp').value=data.pais;
+    if(data.moneda){document.getElementById('cm').value=data.moneda;onMoneda();}
+    if(data.p1) document.getElementById('p1').value=data.p1;
+    if(data.p2) document.getElementById('p2').value=data.p2;
+    var fields=['vn','cv','go','da','gf','imp','sd','b-caja','b-cxc','b-inv','b-oac','b-anc','b-pc','b-pnc','b-pn','a1-vn','a1-ebitda','a1-un','a1-ac','a1-at','a1-pc','a1-pt','a1-inv','a1-cxc','a1-sd'];
+    fields.forEach(function(f){if(data[f]!==undefined) document.getElementById(f).value=data[f];});
+    aC();
+    document.getElementById('import-modal').classList.remove('show');
+    document.getElementById('import-code').value='';
+    err.style.display='none';
+    goS(1);
+    // Show reminder for analyst fields
+    var rem=document.getElementById('import-reminder');
+    if(rem) rem.style.display='block';
+  }catch(e){
+    err.textContent='Código inválido. Verificá que hayas copiado el código completo del formulario del cliente.';
+    err.style.display='block';
+  }
+}
+
+// ── RESET ─────────────────────────────────────────────────────────────────────
+function resetAll(){
+  var rem=document.getElementById('import-reminder'); if(rem) rem.style.display='none';
+  ['cn','cp','p1','p2','ms','vv','fx-yr'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('pp').value=60;document.getElementById('dm').value=0;document.getElementById('iv').value=10;
+  document.getElementById('cm').value='';document.getElementById('fx-box').style.display='none';
+  document.getElementById('lmt-box').style.display='none';document.getElementById('fx-grid').style.display='none';
+  document.getElementById('tc-p').value='1';document.getElementById('tc-c').value='1';
+  ['vn','cv','ub','go','da','ebit','ebitda','gf','imp','sd','un',
+   'b-caja','b-cxc','b-inv','b-oac','b-ac','b-anc','b-at','b-pc','b-pnc','b-pt','b-pn',
+   'a1-vn','a1-ebitda','a1-un','a1-ac','a1-at','a1-pc','a1-pt','a1-inv','a1-cxc','a1-sd'
+  ].forEach(id=>document.getElementById(id).value='');
+  ['b1','b2','b3','b4'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('es-exc').checked=false;
+  document.getElementById('exc-detail').style.display='none';
+  document.querySelectorAll('.exc-req').forEach(b=>b.checked=false);
+  document.getElementById('rc').innerHTML='';
+  lastResult=null;
+  goS(1);
+}
+
+// Init
+loadCfg();
+document.getElementById('hcount').textContent=JSON.parse(localStorage.getItem('credit_evals_backup')||'[]').length;
+</script>
+</body>
+</html>
