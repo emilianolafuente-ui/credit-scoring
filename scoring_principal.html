@@ -1048,7 +1048,20 @@ function calc(){
   document.getElementById('hcount').textContent='…';
 
   // Build internal result HTML
-  document.getElementById('rc').innerHTML=
+  document.getElementById('rc').innerHTML = buildInternalHtml(lastResult);
+  goS(4);
+}
+
+// ── BUILD INTERNAL HTML (from result object, works on any device) ─────────────
+function buildInternalHtml(R){
+  var nom=R.nom,pai=R.pai,mon=R.mon,pp1=R.pp1,pp2=R.pp2,hoy=R.hoy,nxtStr=R.nxtStr;
+  var tcPv=R.tcPv,tcCv=R.tcCv,msol=R.msol,lmt=R.lmt,laprov=R.laprov,pct=R.pct;
+  var nv=R.nv,tot=R.tot,sA=R.sA,sB=R.sB,ta=R.ta,mej=R.mej,det=R.det,an=R.an,anyV=R.anyV;
+  var vts=R.vts,trs=R.trs,rrows=R.rrows,fs1=R.fs1,fs2=R.fs2;
+  var b1=R.b1,b2=R.b2,b3=R.b3,b4=R.b4;
+  var b1l=R.b1l,b2l=R.b2l,b3l=R.b3l,b4l=R.b4l;
+  var ACS=R.ACS,decT=R.decT,cbT=R.cbT,icns=R.icns;
+  return (
     '<div class="rh"><div>'+
     '<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.32);margin-bottom:3px">Evaluación — Sec. 4.1</div>'+
     '<div style="font-family:\'DM Serif Display\',serif;font-size:19px;color:#fff;margin-bottom:1px">'+nom+'</div>'+
@@ -1096,18 +1109,18 @@ function calc(){
     '</div></div>'+
     '<div class="card"><div class="ct">Ratios — Bloque A</div><div class="cs">'+pp1+' vs '+pp2+' · Puntaje sobre '+pp2+'</div>'+
     '<table><thead><tr><th>Ratio</th><th></th><th style="text-align:center">'+pp1+'</th><th style="text-align:center">'+pp2+'</th><th style="text-align:center">Tend.</th><th style="text-align:center">Puntaje</th></tr></thead><tbody>'+
-    rrows.map(r=>'<tr><td class="rn">'+r.n+'</td><td>'+tip(r.k)+'</td><td class="rv" style="text-align:center">'+r.v1+'</td><td class="rv" style="text-align:center;font-weight:600">'+r.v2+'</td><td style="text-align:center">'+tH(trs[r.k])+'</td><td style="text-align:center">'+chip(r.p,r.m)+'</td></tr>').join('')+
+    rrows.map(function(r){return '<tr><td class="rn">'+r.n+'</td><td>'+tip(r.k)+'</td><td class="rv" style="text-align:center">'+r.v1+'</td><td class="rv" style="text-align:center;font-weight:600">'+r.v2+'</td><td style="text-align:center">'+tH(trs[r.k])+'</td><td style="text-align:center">'+chip(r.p,r.m)+'</td></tr>';}).join('')+
     '<tr style="background:var(--g50)"><td colspan="5" style="font-weight:600;color:var(--navy)">Ajuste tendencia ('+mej+' mejoras · '+det+' deterioros)</td><td style="text-align:center">'+chip(ta,5)+'</td></tr>'+
     '</tbody></table></div>'+
     '<div class="card"><div class="ct">Bloque B</div><table><thead><tr><th>Variable</th><th>Valor</th><th style="text-align:center">Pts</th></tr></thead><tbody>'+
-    [['B.1 Riesgo País',b1l[b1],b1,10],['B.2 Historial',b2l[b2],b2,10],['B.3 Referencias',b3l[b3],b3,6],['B.4 Trayectoria',b4l[b4],b4,4]].map(x=>'<tr><td class="rn">'+x[0]+'</td><td style="color:var(--g600)">'+x[1]+'</td><td style="text-align:center">'+chip(x[2],x[3])+'</td></tr>').join('')+
+    [['B.1 Riesgo País',b1l[b1],b1,10],['B.2 Historial',b2l[b2],b2,10],['B.3 Referencias',b3l[b3],b3,6],['B.4 Trayectoria',b4l[b4],b4,4]].map(function(x){return '<tr><td class="rn">'+x[0]+'</td><td style="color:var(--g600)">'+x[1]+'</td><td style="text-align:center">'+chip(x[2],x[3])+'</td></tr>';}).join('')+
     '</tbody></table></div>'+
     '<div class="card"><div class="ct">Nivel de Autorización — Sec. 5</div>'+
     '<table><thead><tr><th>Nivel</th><th>Asignación</th><th>Habilitación</th><th>Monto</th></tr></thead><tbody>'+
-    ACS.map((a,i)=>'<tr style="background:'+(i===an?'var(--yl)':i%2===0?'#fff':'var(--g50)')+'"><td style="text-align:center">'+(i===an?'<span style="background:var(--acc);color:var(--navy);font-weight:700;border-radius:4px;padding:1px 6px;font-size:11px">Nivel '+(i+1)+' ◀</span>':'Nivel '+(i+1))+'</td><td>'+a.a+'</td><td>'+a.h+'</td><td>'+a.m+'</td></tr>').join('')+
+    ACS.map(function(a,i){return '<tr style="background:'+(i===an?'var(--yl)':i%2===0?'#fff':'var(--g50)')+'"><td style="text-align:center">'+(i===an?'<span style="background:var(--acc);color:var(--navy);font-weight:700;border-radius:4px;padding:1px 6px;font-size:11px">Nivel '+(i+1)+' ◀</span>':'Nivel '+(i+1))+'</td><td>'+a.a+'</td><td>'+a.h+'</td><td>'+a.m+'</td></tr>';}).join('')+
     '</tbody></table></div>'+
     '<div class="card"><div class="ct">Factores de Veto</div>'+
-    '<ul class="vl">'+vts.map(v=>'<li class="vi '+(v.a?'val':'vok')+'"><span>'+(v.a?'⚠️':'✓')+'</span><span style="flex:1">'+v.l+'</span><span style="font-family:\'DM Mono\',monospace;font-size:10px">'+(v.a?'VETO':'OK')+'</span></li>').join('')+'</ul></div>'+
+    '<ul class="vl">'+vts.map(function(v){return '<li class="vi '+(v.a?'val':'vok')+'"><span>'+(v.a?'⚠️':'✓')+'</span><span style="flex:1">'+v.l+'</span><span style="font-family:\'DM Mono\',monospace;font-size:10px">'+(v.a?'VETO':'OK')+'</span></li>';}).join('')+'</ul></div>'+
     '<div class="sf-box"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#3730a3;margin-bottom:9px">☁️ Campos para Salesforce</div>'+
     '<div class="g2">'+
     [['Categorización de Riesgo',nv==='bajo'?'Nivel de Riesgo Bajo':nv==='medio'?'Nivel de Riesgo Medio':'Nivel de Riesgo Alto'],
@@ -1115,21 +1128,20 @@ function calc(){
      ['Fecha Revisión',hoy],['Próxima Revisión',nxtStr],
      ['Score Total',tot+'/100'],['Nivel Auth','Nivel '+(an+1)+' — '+ACS[an].a],
      ['Veto Activo',anyV?'Sí — Revisión obligatoria':'No'],['Balance Anual','Adjuntar PDF impreso']
-    ].map(x=>'<div><div class="sf-f">'+x[0]+'</div><div class="sf-v">'+x[1]+'</div></div>').join('')+
-    '</div></div>';
-
-  goS(4);
+    ].map(function(x){return '<div><div class="sf-f">'+x[0]+'</div><div class="sf-v">'+x[1]+'</div></div>';}).join('')+
+    '</div></div>'
+  );
 }
 
 // ── PRINT INTERNAL ────────────────────────────────────────────────────────────
 function printInternal(){
   if(!lastResult){alert('No hay resultado para exportar.');return;}
-  var orig=document.getElementById('rc').innerHTML||'';
+  var html=buildInternalHtml(lastResult);
   var win=window.open('','_blank');
   win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Evaluación Interna</title>'+
     '<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">'+
     '<style>'+document.querySelector('style').textContent+'body{padding:24px;max-width:900px;margin:0 auto}@media print{body>*{display:block!important}body{padding:8px}}</style></head>'+
-    '<body>'+orig+'</body></html>');
+    '<body>'+html+'</body></html>');
   win.document.close();
   win.onload=function(){win.print();};
 }
