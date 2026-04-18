@@ -1123,11 +1123,12 @@ function calc(){
 
 // ── PRINT INTERNAL ────────────────────────────────────────────────────────────
 function printInternal(){
-  var orig=document.getElementById('rc').innerHTML;
+  if(!lastResult){alert('No hay resultado para exportar.');return;}
+  var orig=document.getElementById('rc').innerHTML||'';
   var win=window.open('','_blank');
   win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Evaluación Interna</title>'+
     '<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">'+
-    '<style>'+document.querySelector('style').textContent+'body{padding:24px;max-width:900px;margin:0 auto}@media print{body{padding:8px}}</style></head>'+
+    '<style>'+document.querySelector('style').textContent+'body{padding:24px;max-width:900px;margin:0 auto}@media print{body>*{display:block!important}body{padding:8px}}</style></head>'+
     '<body>'+orig+'</body></html>');
   win.document.close();
   win.onload=function(){win.print();};
