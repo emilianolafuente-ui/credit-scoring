@@ -1027,10 +1027,10 @@ function calc(){
   // Store result for PDF generation
   lastResult={nom,pai,mon,pp1,pp2,hoy,nxtStr,tcPv,tcCv,msol,lmt:Math.round(lmt),laprov,pct,nv,tot,sA,sB,ta,mej,det,an,anyV,vts,r1,r2,sc,trs,rrows,b1,b2,b3,b4,b1l,b2l,b3l,b4l,ACS,decT,cbT,icns,fs1,fs2};
 
-  // Save to Google Sheets (sin detalle para no exceder límite de URL)
+  // Save to Google Sheets (con detalle comprimido ~1.5KB para descarga cross-device)
   var cfg=getCfg();
   var evId=Date.now();
-  var ev={id:evId,fecha:hoy,proxRevision:nxtStr,nombre:nom,pais:pai,moneda:mon,p2:pp2,monto:msol,score:tot,nivel:nv,pct:pct,limiteAprobado:laprov,lmt:Math.round(lmt),nivelAuth:an,anyVeto:anyV,sA:sA,sB:sB,analista:cfg.analista||''};
+  var ev={id:evId,fecha:hoy,proxRevision:nxtStr,nombre:nom,pais:pai,moneda:mon,p2:pp2,monto:msol,score:tot,nivel:nv,pct:pct,limiteAprobado:laprov,lmt:Math.round(lmt),nivelAuth:an,anyVeto:anyV,sA:sA,sB:sB,analista:cfg.analista||'',detalle:JSON.stringify(minResult(lastResult))};
   if(cfg.url){
     fetch(cfg.url+'?action=save&data='+encodeURIComponent(JSON.stringify(ev)))
     .then(()=>{document.getElementById('save-status').textContent='✓ Guardado en historial compartido';})
@@ -1350,9 +1350,8 @@ function renderHistory(evs){
         '<div style="font-family:\'DM Mono\',monospace;font-size:11px;font-weight:600;color:'+vc+'">'+fmtDate(ev.proxRevision)+'</div>'+
         (dias!==null?'<div style="font-size:9px;color:'+vc+';">'+(dias<=0?'VENCIDA':dias+'d')+'</div>':'')+
       '</div>'+
-      (function(){var c=JSON.parse(localStorage.getItem('credit_details_cache')||'{}');return(ev.detalle||c[ev.id]||c[String(ev.id)])?
       '<button onclick="dlReport(\''+ev.id+'\',\'internal\')" title="Descargar informe interno" style="background:none;border:none;color:var(--navy);cursor:pointer;font-size:13px;padding:4px 5px">📄</button>'+
-      '<button onclick="dlReport(\''+ev.id+'\',\'client\')" title="Descargar informe para el cliente (EN)" style="background:none;border:none;color:#059669;cursor:pointer;font-size:13px;padding:4px 5px">📤</button>':'';})()+
+      '<button onclick="dlReport(\''+ev.id+'\',\'client\')" title="Descargar informe para el cliente (EN)" style="background:none;border:none;color:#059669;cursor:pointer;font-size:13px;padding:4px 5px">📤</button>'+
       '<button onclick="reqPin(\'del\',\''+ev.id+'\')" style="background:none;border:none;color:var(--g400);cursor:pointer;font-size:14px;padding:4px 6px">🗑</button>'+
     '</div>';
   }).join('');
@@ -1546,23 +1545,91 @@ async function doClear(pin){
   return true;
 }
 
+// ── MINIMAL RESULT (cross-device download support) ────────────────────────────
+function minResult(R){
+  return {
+    nom:R.nom, pai:R.pai, mon:R.mon, pp1:R.pp1, pp2:R.pp2,
+    hoy:R.hoy, nxtStr:R.nxtStr, tcPv:R.tcPv, tcCv:R.tcCv,
+    msol:R.msol, lmt:R.lmt, laprov:R.laprov, pct:R.pct,
+    nv:R.nv, tot:R.tot, sA:R.sA, sB:R.sB,
+    ta:R.ta, mej:R.mej, det:R.det, an:R.an, anyV:R.anyV,
+    b1:R.b1, b2:R.b2, b3:R.b3, b4:R.b4,
+    r1:R.r1, r2:R.r2, sc:R.sc, trs:R.trs,
+    fs1:R.fs1, fs2:R.fs2,
+    vtf:R.vts.map(function(v){return v.a?1:0;})
+  };
+}
+function expandResult(m){
+  if(m.rrows) return m; // already full result, nothing to do
+  var R=Object.assign({},m);
+  // Reconstruct vts labels
+  var vtLabels=[
+    'Pérdidas netas en ambos ejercicios',
+    'Endeudamiento &gt; 0.85 en Año 2',
+    'Liquidez corriente &lt; 1.0 en ambos',
+    'DSCR &lt; 1.0 en Año 2',
+    'Referencias desfavorables sin garantía (Sec. 4.1)'
+  ];
+  R.vts=(m.vtf||[]).map(function(a,i){return{l:vtLabels[i]||'',a:!!a};});
+  // Reconstruct rrows
+  R.rrows=[
+    {k:'lc',n:'A.1 Liquidez Corriente',v1:fmt(m.r1.lc,'x'),v2:fmt(m.r2.lc,'x'),p:m.sc.lc,m:12},
+    {k:'ac',n:'A.2 Prueba Ácida',v1:fmt(m.r1.ac,'x'),v2:fmt(m.r2.ac,'x'),p:m.sc.ac,m:8},
+    {k:'en',n:'A.3 Endeudamiento',v1:fmt(m.r1.en,'x'),v2:fmt(m.r2.en,'x'),p:m.sc.en,m:10},
+    {k:'ds',n:'A.4 DSCR',v1:fmt(m.r1.ds,'x'),v2:fmt(m.r2.ds,'x'),p:m.sc.ds,m:10},
+    {k:'mn',n:'A.5 Margen Neto',v1:fmt(m.r1.mn,'pct'),v2:fmt(m.r2.mn,'pct'),p:m.sc.mn,m:8},
+    {k:'ra',n:'A.6 ROA',v1:fmt(m.r1.ra,'pct'),v2:fmt(m.r2.ra,'pct'),p:m.sc.ra,m:7},
+    {k:'dso',n:'A.7 Días de Cobro (DSO)',v1:fmt(m.r1.dso,'d'),v2:fmt(m.r2.dso,'d'),p:m.sc.dso,m:8},
+    {k:'ro',n:'A.8 Rotación de Activos',v1:fmt(m.r1.ro,'x'),v2:fmt(m.r2.ro,'x'),p:m.sc.ro,m:7}
+  ];
+  // Reconstruct lookup tables
+  R.b1l={10:'Bajo (A)',7:'Moderado (B)',3:'Alto (C)',0:'Muy alto (D)'};
+  R.b2l={10:'≤5 días hábiles',5:'6–15 días hábiles',2:'15–30 días',0:'>30 días/default'};
+  R.b3l={6:'2+ ref. favorables',3:'1 ref. favorable',1:'Sin ref. (ext.)',0:'Ref. desfavorables'};
+  R.b4l={4:'>2 años',2:'1–2 años',1:'Cliente nuevo'};
+  R.ACS=[
+    {a:'Supervisor CC',h:'Supervisor Finanzas',m:'Hasta USD 75.000'},
+    {a:'Supervisor CC',h:'Director A&F',m:'Hasta USD 200.000'},
+    {a:'Director A&F',h:'Presidente',m:'Hasta USD 500.000'},
+    {a:'Presidente',h:'Directorio',m:'Más de USD 500.000'}
+  ];
+  R.decT={
+    bajo:'Se aprueba el 100% del LMT. Historial sólido y economía estable (Sec. 2.2a).',
+    medio:'Se aprueba hasta el 75% del LMT. Pago ≤5 días hábiles. Plazo máx. 60 días. Revisión en 6 meses (Sec. 2.2b).',
+    alto:'Crédito rechazado. Alternativas: anticipo ≥50% + saldo contra embarque o garantía bancaria (Sec. 2.2c, 6.2).'
+  };
+  R.cbT={
+    bajo:'Transferencia estándar / CdC confirmada (Sec. 4.1)',
+    medio:'Transferencia con verificación / CdC Dir. Financiera (Sec. 4.2)',
+    alto:'Pago adelantado / CdC Alta Dirección (Sec. 4.3)'
+  };
+  R.icns={bajo:'🟢',medio:'🟡',alto:'🔴'};
+  return R;
+}
+
 // ── DOWNLOAD FROM HISTORY ─────────────────────────────────────────────────────
 function dlReport(id, type){
-  // Check localStorage cache first, then Sheet detalle
+  // 1) Try localStorage cache first (same device, instant)
   var cache=JSON.parse(localStorage.getItem('credit_details_cache')||'{}');
   var saved=cache[id]||cache[String(id)];
+  // 2) Fall back to Sheet detalle (cross-device)
   if(!saved){
     var ev=cachedHistory.find(function(e){return String(e.id)===String(id);});
-    if(ev&&ev.detalle){try{saved=JSON.parse(ev.detalle);}catch(e){}}
+    if(ev&&ev.detalle){
+      try{ saved=expandResult(JSON.parse(ev.detalle)); }catch(e){}
+    }
   }
-  if(!saved){alert('Detalle no disponible. Los reportes solo se pueden descargar desde el navegador donde se realizó la evaluación.');return;}
+  if(!saved){
+    alert('Detalle no disponible en este dispositivo.\n\nPara habilitar descargas desde cualquier dispositivo, realizá una nueva evaluación con la versión actualizada.');
+    return;
+  }
   try{
     var prev=lastResult;
     lastResult=saved;
     if(type==='internal') printInternal();
     else printClient();
     lastResult=prev;
-  }catch(e){alert('Error al cargar el detalle de la evaluación.');}
+  }catch(e){alert('Error al generar el reporte.');}
 }
 
 // ── TEST CONNECTION ───────────────────────────────────────────────────────────
