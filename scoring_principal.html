@@ -946,12 +946,16 @@ function calc(){
   var ub2=vn2-cv2, ebit2=ub2-go2-da2, ebitda2=ebit2+da2, un2=ebit2-gf2-imp2, sd2=gv('sd')*tcP;
   var bac2=gv('b-ac')*tcC, bat2=gv('b-at')*tcC, bpc2=gv('b-pc')*tcC, bpt2=gv('b-pt')*tcC;
   var binv2=gv('b-inv')*tcC, bcxc2=gv('b-cxc')*tcC;
+  var banc2=gv('b-anc')*tcC, bpnc2=gv('b-pnc')*tcC, bpn2=gv('b-pn')*tcC;
   var d2={vn:vn2,ebitda:ebitda2,un:un2,sd:sd2,ac:bac2,at:bat2,pc:bpc2,pt:bpt2,inv:binv2,cxc:bcxc2};
   var d1={
     vn:gv('a1-vn')*tcP, ebitda:gv('a1-ebitda')*tcP, un:gv('a1-un')*tcP, sd:gv('a1-sd')*tcP,
     ac:gv('a1-ac')*tcC, at:gv('a1-at')*tcC, pc:gv('a1-pc')*tcC, pt:gv('a1-pt')*tcC,
     inv:gv('a1-inv')*tcC, cxc:gv('a1-cxc')*tcC
   };
+  // Financial statements in USD for display
+  var fs2={vn:vn2,cv:cv2,ub:ub2,go:go2,da:da2,ebitda:ebitda2,gf:gf2,imp:imp2,un:un2,ac:bac2,anc:banc2,at:bat2,pc:bpc2,pnc:bpnc2,pt:bpt2,pn:bpn2};
+  var fs1={vn:d1.vn,ebitda:d1.ebitda,un:d1.un,ac:d1.ac,anc:d1.at-d1.ac,at:d1.at,pc:d1.pc,pnc:d1.pt-d1.pc,pt:d1.pt,pn:d1.at-d1.pt};
 
   function cr(d){return{
     lc:sf(d.ac,d.pc), ac:sf((d.ac||0)-(d.inv||0),d.pc),
@@ -1021,7 +1025,7 @@ function calc(){
   ];
 
   // Store result for PDF generation
-  lastResult={nom,pai,mon,pp1,pp2,hoy,nxtStr,tcPv,tcCv,msol,lmt:Math.round(lmt),laprov,pct,nv,tot,sA,sB,ta,mej,det,an,anyV,vts,r1,r2,sc,trs,rrows,b1,b2,b3,b4,b1l,b2l,b3l,b4l,ACS,decT,cbT,icns};
+  lastResult={nom,pai,mon,pp1,pp2,hoy,nxtStr,tcPv,tcCv,msol,lmt:Math.round(lmt),laprov,pct,nv,tot,sA,sB,ta,mej,det,an,anyV,vts,r1,r2,sc,trs,rrows,b1,b2,b3,b4,b1l,b2l,b3l,b4l,ACS,decT,cbT,icns,fs1,fs2};
 
   // Save to Google Sheets
   var cfg=getCfg();
@@ -1061,6 +1065,29 @@ function calc(){
     '</div>'+
     '<div class="bg2"><div class="bc"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><div><div style="font-weight:600;color:var(--navy);font-size:12px">Bloque A — Financiero</div><div style="font-size:10px;color:var(--g400)">Máx. 70 pts · Tendencia: '+(ta>=0?'+':'')+ta+'</div></div><div style="font-family:\'DM Mono\',monospace;font-size:24px;font-weight:500;color:var(--navy)">'+sA+'</div></div><div class="bb"><div style="height:100%;width:'+Math.max(0,sA/70*100)+'%;background:linear-gradient(90deg,#1d4ed8,#3b82f6);border-radius:99px"></div></div></div>'+
     '<div class="bc"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><div><div style="font-weight:600;color:var(--navy);font-size:12px">Bloque B — Cualitativo</div><div style="font-size:10px;color:var(--g400)">Máx. 30 pts</div></div><div style="font-family:\'DM Mono\',monospace;font-size:24px;font-weight:500;color:var(--navy)">'+sB+'</div></div><div class="bb"><div style="height:100%;width:'+sB/30*100+'%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:99px"></div></div></div></div>'+
+    '<div class="card"><div class="ct">Estados Financieros en USD</div>'+
+    '<div class="cs">'+(mon==='USD'?'Moneda original USD — sin conversión.':'TC Promedio '+tcPv+' · TC Cierre '+tcCv+' · P&L convertido a TC promedio · Balance a TC cierre.')+'</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">'+
+    '<div><div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Estado de Resultados</div>'+
+    '<table><thead><tr><th></th><th style="text-align:right">'+pp1+'</th><th style="text-align:right">'+pp2+'</th></tr></thead><tbody>'+
+    [['Ventas Netas',fs1.vn,fs2.vn],['Costo de Ventas','—',fs2.cv],['Utilidad Bruta','—',fs2.ub],
+     ['Gastos Operativos','—',fs2.go],['D&A','—',fs2.da],['EBITDA',fs1.ebitda,fs2.ebitda],
+     ['G. Financieros','—',fs2.gf],['Impuesto','—',fs2.imp],['Utilidad Neta',fs1.un,fs2.un]]
+    .map(function(r){return '<tr><td class="rn">'+r[0]+'</td>'+
+      '<td style="text-align:right;font-family:\'DM Mono\',monospace;font-size:11px">'+(r[1]==='—'?'—':fu(r[1]))+'</td>'+
+      '<td style="text-align:right;font-family:\'DM Mono\',monospace;font-size:11px;font-weight:600">'+(r[2]==='—'?'—':fu(r[2]))+'</td></tr>';}).join('')+
+    '</tbody></table></div>'+
+    '<div><div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Balance General</div>'+
+    '<table><thead><tr><th></th><th style="text-align:right">'+pp1+'</th><th style="text-align:right">'+pp2+'</th></tr></thead><tbody>'+
+    [['Activo Corriente',fs1.ac,fs2.ac],['Activo No Cte.',fs1.anc,fs2.anc],['Total Activo',fs1.at,fs2.at],
+     ['Pasivo Corriente',fs1.pc,fs2.pc],['Pasivo No Cte.',fs1.pnc,fs2.pnc],['Total Pasivo',fs1.pt,fs2.pt],
+     ['Patrimonio Neto',fs1.pn,fs2.pn]]
+    .map(function(r){var last=r[0]==='Patrimonio Neto'||r[0]==='Total Activo'||r[0]==='Total Pasivo';
+      return '<tr style="'+(last?'font-weight:700;background:var(--g50)':'')+'"><td class="rn">'+r[0]+'</td>'+
+      '<td style="text-align:right;font-family:\'DM Mono\',monospace;font-size:11px">'+fu(r[1])+'</td>'+
+      '<td style="text-align:right;font-family:\'DM Mono\',monospace;font-size:11px;font-weight:600">'+fu(r[2])+'</td></tr>';}).join('')+
+    '</tbody></table></div>'+
+    '</div></div>'+
     '<div class="card"><div class="ct">Ratios — Bloque A</div><div class="cs">'+pp1+' vs '+pp2+' · Puntaje sobre '+pp2+'</div>'+
     '<table><thead><tr><th>Ratio</th><th></th><th style="text-align:center">'+pp1+'</th><th style="text-align:center">'+pp2+'</th><th style="text-align:center">Tend.</th><th style="text-align:center">Puntaje</th></tr></thead><tbody>'+
     rrows.map(r=>'<tr><td class="rn">'+r.n+'</td><td>'+tip(r.k)+'</td><td class="rv" style="text-align:center">'+r.v1+'</td><td class="rv" style="text-align:center;font-weight:600">'+r.v2+'</td><td style="text-align:center">'+tH(trs[r.k])+'</td><td style="text-align:center">'+chip(r.p,r.m)+'</td></tr>').join('')+
