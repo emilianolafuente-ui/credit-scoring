@@ -484,16 +484,17 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--g50)}
           </select></div>
         <div><label>B.3 — Referencias bancarias / comerciales (Sec. 1.1 y 4.1)</label>
           <select id="b3"><option value="">— Seleccionar —</option>
-            <option value="6">2+ referencias favorables verificadas — 6 pts</option>
-            <option value="3">1 referencia favorable — 3 pts</option>
-            <option value="1">Sin referencias (informe externo) — 1 pt</option>
-            <option value="0">Referencias desfavorables — 0 pts</option>
+            <option value="2">2+ referencias favorables verificadas — 2 pts</option>
+            <option value="1">1 referencia favorable — 1 pt</option>
+            <option value="0">Sin referencias — 0 pts</option>
+            <option value="-2">Referencias desfavorables — -2 pts</option>
           </select></div>
         <div><label>B.4 — Trayectoria comercial (Sec. 6.1)</label>
           <select id="b4"><option value="">— Seleccionar —</option>
-            <option value="4">2+ años con buen comportamiento — 4 pts</option>
-            <option value="2">1–2 años — 2 pts</option>
-            <option value="1">Cliente nuevo (1° venta 100% anticipada) — 1 pt</option>
+            <option value="8">2+ años con buen comportamiento — 8 pts</option>
+            <option value="6">1–2 años — 6 pts</option>
+            <option value="4">Cliente nuevo — 4 pts</option>
+            <option value="0">Mal comportamiento — 0 pts</option>
           </select></div>
       </div>
     </div>
@@ -996,13 +997,13 @@ function calc(){
     {l:'Endeudamiento &gt; 0.85 en Año 2',a:r2.en!==null&&r2.en>0.85},
     {l:'Liquidez corriente &lt; 1.0 en ambos',a:r1.lc!==null&&r2.lc!==null&&r1.lc<1&&r2.lc<1},
     {l:'DSCR &lt; 1.0 en Año 2',a:r2.ds!==null&&r2.ds<1},
-    {l:'Referencias desfavorables sin garantía (Sec. 4.1)',a:b3===0}
+    {l:'Referencias desfavorables sin garantía (Sec. 4.1)',a:b3<0}
   ];
   var anyV=vts.some(v=>v.a);
   var b1l={10:'Bajo (A)',7:'Moderado (B)',3:'Alto (C)',0:'Muy alto (D)'};
   var b2l={10:'≤5 días hábiles',5:'6–15 días hábiles',2:'15–30 días',0:'>30 días/default'};
-  var b3l={6:'2+ ref. favorables',3:'1 ref. favorable',1:'Sin ref. (ext.)',0:'Ref. desfavorables'};
-  var b4l={4:'>2 años',2:'1–2 años',1:'Cliente nuevo'};
+  var b3l={2:'2+ ref. favorables',1:'1 ref. favorable',0:'Sin referencias',['-2']:'Ref. desfavorables'};
+  var b4l={8:'>2 años buen comport.',6:'1–2 años',4:'Cliente nuevo',0:'Mal comportamiento'};
   var nom=document.getElementById('cn').value, pai=document.getElementById('cp').value;
   var pp1=document.getElementById('p1').value||'Año 1', pp2=document.getElementById('p2').value||'Año 2';
   var hoy=new Date().toLocaleDateString('es-AR');
@@ -1083,7 +1084,7 @@ function buildInternalHtml(R){
     (pct===0?'Rechazado':'USD '+laprov.toLocaleString('es-AR'))+'</div></div>':'')+
     '</div>'+
     '<div class="bg2"><div class="bc"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><div><div style="font-weight:600;color:var(--navy);font-size:12px">Bloque A — Financiero</div><div style="font-size:10px;color:var(--g400)">Máx. 70 pts · Tendencia: '+(ta>=0?'+':'')+ta+'</div></div><div style="font-family:\'DM Mono\',monospace;font-size:24px;font-weight:500;color:var(--navy)">'+sA+'</div></div><div class="bb"><div style="height:100%;width:'+Math.max(0,sA/70*100)+'%;background:linear-gradient(90deg,#1d4ed8,#3b82f6);border-radius:99px"></div></div></div>'+
-    '<div class="bc"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><div><div style="font-weight:600;color:var(--navy);font-size:12px">Bloque B — Cualitativo</div><div style="font-size:10px;color:var(--g400)">Máx. 30 pts</div></div><div style="font-family:\'DM Mono\',monospace;font-size:24px;font-weight:500;color:var(--navy)">'+sB+'</div></div><div class="bb"><div style="height:100%;width:'+sB/30*100+'%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:99px"></div></div></div></div>'+
+    '<div class="bc"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><div><div style="font-weight:600;color:var(--navy);font-size:12px">Bloque B — Cualitativo</div><div style="font-size:10px;color:var(--g400)">Máx. 30 pts</div></div><div style="font-family:\'DM Mono\',monospace;font-size:24px;font-weight:500;color:var(--navy)">'+sB+'</div></div><div class="bb"><div style="height:100%;width:'+Math.max(0,sB/30*100)+'%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:99px"></div></div></div></div>'+
     '<div class="card"><div class="ct">Estados Financieros en USD</div>'+
     '<div class="cs">'+(mon==='USD'?'Moneda original USD — sin conversión.':'TC Promedio '+tcPv+' · TC Cierre '+tcCv+' · P&L convertido a TC promedio · Balance a TC cierre.')+'</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">'+
@@ -1113,7 +1114,7 @@ function buildInternalHtml(R){
     '<tr style="background:var(--g50)"><td colspan="5" style="font-weight:600;color:var(--navy)">Ajuste tendencia ('+mej+' mejoras · '+det+' deterioros)</td><td style="text-align:center">'+chip(ta,5)+'</td></tr>'+
     '</tbody></table></div>'+
     '<div class="card"><div class="ct">Bloque B</div><table><thead><tr><th>Variable</th><th>Valor</th><th style="text-align:center">Pts</th></tr></thead><tbody>'+
-    [['B.1 Riesgo País',b1l[b1],b1,10],['B.2 Historial',b2l[b2],b2,10],['B.3 Referencias',b3l[b3],b3,6],['B.4 Trayectoria',b4l[b4],b4,4]].map(function(x){return '<tr><td class="rn">'+x[0]+'</td><td style="color:var(--g600)">'+x[1]+'</td><td style="text-align:center">'+chip(x[2],x[3])+'</td></tr>';}).join('')+
+    [['B.1 Riesgo País',b1l[b1],b1,10],['B.2 Historial',b2l[b2],b2,10],['B.3 Referencias',b3l[b3],b3,2],['B.4 Trayectoria',b4l[b4],b4,8]].map(function(x){return '<tr><td class="rn">'+x[0]+'</td><td style="color:var(--g600)">'+x[1]+'</td><td style="text-align:center">'+chip(x[2],x[3])+'</td></tr>';}).join('')+
     '</tbody></table></div>'+
     '<div class="card"><div class="ct">Nivel de Autorización — Sec. 5</div>'+
     '<table><thead><tr><th>Nivel</th><th>Asignación</th><th>Habilitación</th><th>Monto</th></tr></thead><tbody>'+
@@ -1598,8 +1599,8 @@ function expandResult(m){
   // Reconstruct lookup tables
   R.b1l={10:'Bajo (A)',7:'Moderado (B)',3:'Alto (C)',0:'Muy alto (D)'};
   R.b2l={10:'≤5 días hábiles',5:'6–15 días hábiles',2:'15–30 días',0:'>30 días/default'};
-  R.b3l={6:'2+ ref. favorables',3:'1 ref. favorable',1:'Sin ref. (ext.)',0:'Ref. desfavorables'};
-  R.b4l={4:'>2 años',2:'1–2 años',1:'Cliente nuevo'};
+  R.b3l={2:'2+ ref. favorables',1:'1 ref. favorable',0:'Sin referencias',['-2']:'Ref. desfavorables'};
+  R.b4l={8:'>2 años buen comport.',6:'1–2 años',4:'Cliente nuevo',0:'Mal comportamiento'};
   R.ACS=[
     {a:'Supervisor CC',h:'Supervisor Finanzas',m:'Hasta USD 75.000'},
     {a:'Supervisor CC',h:'Director A&F',m:'Hasta USD 200.000'},
