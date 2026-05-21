@@ -32,6 +32,7 @@ input:focus,select:focus{border-color:var(--bl)}
 .bp{background:var(--navy);color:#fff}.bp:hover{background:#1a3260}
 .btn-row{display:flex;gap:9px;margin-top:16px;flex-wrap:wrap}
 .auto{background:var(--g50);color:var(--g400)}
+.fhelp{font-size:10px;color:var(--g400);line-height:1.45;margin-top:4px;padding:0 1px}
 /* Result box */
 .result-box{background:var(--gl);border:2px solid #6ee7b7;border-radius:12px;padding:20px 24px;margin-top:20px;display:none}
 .result-box h3{font-family:'DM Serif Display',serif;font-size:18px;color:var(--navy);margin-bottom:8px}
@@ -60,12 +61,97 @@ input:focus,select:focus{border-color:var(--bl)}
         <label>Currency of financial statements</label>
         <select id="moneda">
           <option value="">— Select —</option>
-          <optgroup label="Americas"><option value="USD">USD</option><option value="ARS">ARS</option><option value="BRL">BRL</option><option value="CAD">CAD</option><option value="CLP">CLP</option><option value="COP">COP</option><option value="MXN">MXN</option><option value="PEN">PEN</option></optgroup>
-          <optgroup label="Europe"><option value="EUR">EUR</option><option value="GBP">GBP</option><option value="TRY">TRY</option></optgroup>
-          <optgroup label="Asia / Oceania"><option value="AUD">AUD</option><option value="CNY">CNY</option><option value="INR">INR</option><option value="JPY">JPY</option></optgroup>
-          <optgroup label="Africa"><option value="ZAR">ZAR</option></optgroup>
-          <option value="OTHER">Other</option>
+          <optgroup label="Americas">
+            <option value="USD">USD — US Dollar</option>
+            <option value="ARS">ARS — Argentine Peso</option>
+            <option value="BRL">BRL — Brazilian Real</option>
+            <option value="CAD">CAD — Canadian Dollar</option>
+            <option value="CLP">CLP — Chilean Peso</option>
+            <option value="COP">COP — Colombian Peso</option>
+            <option value="MXN">MXN — Mexican Peso</option>
+            <option value="PEN">PEN — Peruvian Sol</option>
+            <option value="UYU">UYU — Uruguayan Peso</option>
+            <option value="BOB">BOB — Bolivian Boliviano</option>
+            <option value="PYG">PYG — Paraguayan Guaraní</option>
+            <option value="GTQ">GTQ — Guatemalan Quetzal</option>
+            <option value="CRC">CRC — Costa Rican Colón</option>
+            <option value="DOP">DOP — Dominican Peso</option>
+            <option value="HNL">HNL — Honduran Lempira</option>
+            <option value="NIO">NIO — Nicaraguan Córdoba</option>
+            <option value="TTD">TTD — Trinidad &amp; Tobago Dollar</option>
+            <option value="VES">VES — Venezuelan Bolívar</option>
+          </optgroup>
+          <optgroup label="Europe">
+            <option value="EUR">EUR — Euro</option>
+            <option value="GBP">GBP — British Pound</option>
+            <option value="CHF">CHF — Swiss Franc</option>
+            <option value="SEK">SEK — Swedish Krona</option>
+            <option value="NOK">NOK — Norwegian Krone</option>
+            <option value="DKK">DKK — Danish Krone</option>
+            <option value="PLN">PLN — Polish Złoty</option>
+            <option value="CZK">CZK — Czech Koruna</option>
+            <option value="HUF">HUF — Hungarian Forint</option>
+            <option value="RON">RON — Romanian Leu</option>
+            <option value="BGN">BGN — Bulgarian Lev</option>
+            <option value="RSD">RSD — Serbian Dinar</option>
+            <option value="HRK">HRK — Croatian Kuna</option>
+            <option value="TRY">TRY — Turkish Lira</option>
+            <option value="UAH">UAH — Ukrainian Hryvnia</option>
+            <option value="RUB">RUB — Russian Ruble</option>
+            <option value="ISK">ISK — Icelandic Króna</option>
+          </optgroup>
+          <optgroup label="Middle East">
+            <option value="AED">AED — UAE Dirham</option>
+            <option value="SAR">SAR — Saudi Riyal</option>
+            <option value="QAR">QAR — Qatari Riyal</option>
+            <option value="KWD">KWD — Kuwaiti Dinar</option>
+            <option value="BHD">BHD — Bahraini Dinar</option>
+            <option value="OMR">OMR — Omani Rial</option>
+            <option value="JOD">JOD — Jordanian Dinar</option>
+            <option value="ILS">ILS — Israeli Shekel</option>
+            <option value="LBP">LBP — Lebanese Pound</option>
+            <option value="IRR">IRR — Iranian Rial</option>
+          </optgroup>
+          <optgroup label="Africa">
+            <option value="ZAR">ZAR — South African Rand</option>
+            <option value="EGP">EGP — Egyptian Pound</option>
+            <option value="MAD">MAD — Moroccan Dirham</option>
+            <option value="DZD">DZD — Algerian Dinar</option>
+            <option value="TND">TND — Tunisian Dinar</option>
+            <option value="NGN">NGN — Nigerian Naira</option>
+            <option value="KES">KES — Kenyan Shilling</option>
+            <option value="GHS">GHS — Ghanaian Cedi</option>
+            <option value="ETB">ETB — Ethiopian Birr</option>
+            <option value="TZS">TZS — Tanzanian Shilling</option>
+            <option value="XOF">XOF — West African CFA Franc</option>
+            <option value="XAF">XAF — Central African CFA Franc</option>
+          </optgroup>
+          <optgroup label="Asia / Oceania">
+            <option value="CNY">CNY — Chinese Yuan</option>
+            <option value="JPY">JPY — Japanese Yen</option>
+            <option value="INR">INR — Indian Rupee</option>
+            <option value="KRW">KRW — South Korean Won</option>
+            <option value="SGD">SGD — Singapore Dollar</option>
+            <option value="HKD">HKD — Hong Kong Dollar</option>
+            <option value="TWD">TWD — Taiwan Dollar</option>
+            <option value="THB">THB — Thai Baht</option>
+            <option value="IDR">IDR — Indonesian Rupiah</option>
+            <option value="MYR">MYR — Malaysian Ringgit</option>
+            <option value="PHP">PHP — Philippine Peso</option>
+            <option value="VND">VND — Vietnamese Dong</option>
+            <option value="PKR">PKR — Pakistani Rupee</option>
+            <option value="BDT">BDT — Bangladeshi Taka</option>
+            <option value="LKR">LKR — Sri Lankan Rupee</option>
+            <option value="MMK">MMK — Myanmar Kyat</option>
+            <option value="KZT">KZT — Kazakhstani Tenge</option>
+            <option value="AZN">AZN — Azerbaijani Manat</option>
+            <option value="GEL">GEL — Georgian Lari</option>
+            <option value="AUD">AUD — Australian Dollar</option>
+            <option value="NZD">NZD — New Zealand Dollar</option>
+          </optgroup>
+          <option value="OTHER">Other — enter exchange rate manually</option>
         </select>
+        <div class="fhelp" style="margin-top:5px">Can't find your currency? Select <strong>Other</strong> and enter the rate manually. Look up current rates at <a href="https://www.xe.com/currencyconverter/" target="_blank" style="color:#3b82f6">xe.com/currencyconverter</a></div>
       </div>
       <div><label>Fiscal Year 1 (older)</label><input type="text" id="p1" placeholder="Jan–Dec 2023"></div>
       <div><label>Fiscal Year 2 (most recent)</label><input type="text" id="p2" placeholder="Jan–Dec 2024"></div>
@@ -91,8 +177,24 @@ input:focus,select:focus{border-color:var(--bl)}
     <div class="sec">Below the Line</div>
     <div class="g3" style="margin-bottom:8px">
       <div><label>EBITDA <small style="font-weight:400;text-transform:none">(auto)</small></label><input type="number" id="ebitda" class="auto" readonly></div>
-      <div><label>Interest & Financial Expenses <small style="font-weight:400;text-transform:none">(interest only, no principal)</small></label><input type="number" id="gf" oninput="aCalc()"></div>
-      <div><label>Annual Debt Service — principal + interest payments</label><input type="number" id="sd"></div>
+      <div>
+        <label>Interest &amp; Financial Expenses</label>
+        <input type="number" id="gf" oninput="aCalc()">
+        <div class="fhelp">Interest paid on financial debt only (bank loans, bonds, leasing). Excludes principal repayments. Source: income statement financial results or cash flow statement.</div>
+      </div>
+      <div>
+        <label>Annual Debt Service — Year 2</label>
+        <input type="number" id="sd">
+        <div class="fhelp">Total cash paid for financial debt during the year: interest (above) + principal repaid. Source: financing activities in cash flow statement + notes on loans.</div>
+      </div>
+    </div>
+    <div class="g2" style="margin-bottom:8px">
+      <div>
+        <label>Total Financial Debt — Year 2</label>
+        <input type="number" id="fd">
+        <div class="fhelp">Total outstanding financial debt at year-end closing balance: bank loans + bonds/notes payable + financial leasing. Exclude trade payables, tax debt, labor debt and related-party informal loans.</div>
+      </div>
+      <div></div>
     </div>
     <div class="g3">
       <div><label>Income Tax / Tax Expense</label><input type="number" id="imp" oninput="aCalc()"></div>
@@ -138,10 +240,19 @@ input:focus,select:focus{border-color:var(--bl)}
       <div><label>Current Liabilities Year 1</label><input type="number" id="a1-pc"></div>
       <div><label>Total Liabilities Year 1</label><input type="number" id="a1-pt"></div>
     </div>
-    <div class="g3">
+    <div class="g4">
       <div><label>Inventory Year 1</label><input type="number" id="a1-inv"></div>
       <div><label>Accounts Receivable Year 1</label><input type="number" id="a1-cxc"></div>
-      <div><label>Annual Debt Service Year 1</label><input type="number" id="a1-sd"></div>
+      <div>
+        <label>Annual Debt Service Year 1</label>
+        <input type="number" id="a1-sd">
+        <div class="fhelp">Same as Annual Debt Service above, for the comparative prior year.</div>
+      </div>
+      <div>
+        <label>Total Financial Debt — Year 1</label>
+        <input type="number" id="a1-fd">
+        <div class="fhelp">Same as Total Financial Debt above, for the comparative prior year closing balance.</div>
+      </div>
     </div>
   </div>
 
@@ -191,7 +302,8 @@ function generate(){
     'b-pnc':gv('b-pnc'), 'b-pn':gv('b-pn'),
     'a1-vn':gv('a1-vn'), 'a1-ebitda':gv('a1-ebitda'), 'a1-un':gv('a1-un'),
     'a1-ac':gv('a1-ac'), 'a1-at':gv('a1-at'), 'a1-pc':gv('a1-pc'),
-    'a1-pt':gv('a1-pt'), 'a1-inv':gv('a1-inv'), 'a1-cxc':gv('a1-cxc'), 'a1-sd':gv('a1-sd')
+    'a1-pt':gv('a1-pt'), 'a1-inv':gv('a1-inv'), 'a1-cxc':gv('a1-cxc'), 'a1-sd':gv('a1-sd'),
+    fd:gv('fd'), 'a1-fd':gv('a1-fd')
   };
   var code=btoa(JSON.stringify(data));
   document.getElementById('code-area').textContent=code;
