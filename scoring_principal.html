@@ -1041,7 +1041,7 @@ function calc(){
     en:sf(d.pt,d.at), ds:sf(d.ebitda,d.sd),
     mn:sf(d.un,d.vn), ra:sf(d.un,d.at),
     dso:d.vn?sf(d.cxc,d.vn/365):null, ro:sf(d.vn,d.at),
-    de:(d.fd>0&&d.ebitda!==0)?sf(d.fd,d.ebitda):null
+    de:(d.fd>0&&d.ebitda>0)?sf(d.fd,d.ebitda):null
   };}
   var r1=cr(d1), r2=cr(d2);
 
@@ -1060,7 +1060,6 @@ function calc(){
   function tr(k){
     var a=r1[k],b=r2[k];
     if(b===null||b===undefined)return'f';
-    if(k==='de'&&b<0)return'd';
     if(!a)return'f';
     return lb.has(k)?(b<a?'u':b>a?'d':'f'):(b>a?'u':b<a?'d':'f');
   }
@@ -1068,7 +1067,11 @@ function calc(){
   var mej=Object.values(trs).filter(t=>t==='u').length;
   var det=Object.values(trs).filter(t=>t==='d').length;
   var ta=mej>=3?5:det>=3?-5:det>=2?-3:0;
-  var sA=Math.max(0,Object.values(sc).reduce((a,b)=>a+b,0)+ta);
+  // Si DF/EBITDA es N/A, redistribuir sus 10 pts proporcionalmente entre los otros 8 ratios
+  var scBase=sc.lc+sc.ac+sc.en+sc.ds+sc.mn+sc.ra+sc.dso+sc.ro; // máx 60
+  var sA=r2.de===null
+    ? Math.max(0, Math.round(scBase*70/60)+ta)   // normalizar a 70
+    : Math.max(0, scBase+sc.de+ta);              // total normal
   var sB=b1+b2+b3+b4, tot=Math.min(100,sA+sB);
   var nv=tot>=75?'bajo':tot>=55?'medio':'alto';
   var pct=nv==='bajo'?100:nv==='medio'?75:0;
@@ -1083,7 +1086,7 @@ function calc(){
     {l:'Endeudamiento &gt; 0.85 en Año 2',a:r2.en!==null&&r2.en>0.85},
     {l:'Liquidez corriente &lt; 1.0 en ambos',a:r1.lc!==null&&r2.lc!==null&&r1.lc<1&&r2.lc<1},
     {l:'DSCR &lt; 1.0 en Año 2',a:r2.ds!==null&&r2.ds<1},
-    {l:'DF/EBITDA &gt; 5.5x o EBITDA negativo con deuda (Sec. 4.1)',a:r2.de!==null&&(r2.de>5.5||r2.de<0)},
+    {l:'DF/EBITDA &gt; 5.5x — apalancamiento crítico (Sec. 4.1)',a:r2.de!==null&&r2.de>5.5},
     {l:'Referencias desfavorables sin garantía (Sec. 4.1)',a:b3<0}
   ];
   var anyV=vts.some(v=>v.a);
@@ -1114,7 +1117,7 @@ function calc(){
   ];
 
   // Store result for PDF generation
-  lastResult={nom,pai,mon,pp1,pp2,hoy,nxtStr,tcPv,tcCv,msol,lmt:Math.round(lmt),laprov,pct,nv,tot,sA,sB,ta,mej,det,an,anyV,vts,r1,r2,sc,trs,rrows,b1,b2,b3,b4,b1l,b2l,b3l,b4l,ACS,decT,cbT,icns,fs1,fs2};
+  lastResult={nom,pai,mon,pp1,pp2,hoy,nxtStr,tcPv,tcCv,msol,lmt:Math.round(lmt),laprov,pct,nv,tot,sA,sB,ta,mej,det,an,anyV,vts,r1,r2,sc,trs,rrows,b1,b2,b3,b4,b1l,b2l,b3l,b4l,ACS,decT,cbT,icns,fs1,fs2,fd2,fd1:a1fd};
 
   // Save to Google Sheets (con detalle comprimido ~1.5KB para descarga cross-device)
   var cfg=getCfg();
@@ -1198,7 +1201,21 @@ function buildInternalHtml(R){
     '</div></div>'+
     '<div class="card"><div class="ct">Ratios — Bloque A</div><div class="cs">'+pp1+' vs '+pp2+' · Puntaje sobre '+pp2+'</div>'+
     '<table><thead><tr><th>Ratio</th><th></th><th style="text-align:center">'+pp1+'</th><th style="text-align:center">'+pp2+'</th><th style="text-align:center">Tend.</th><th style="text-align:center">Puntaje</th></tr></thead><tbody>'+
-    rrows.map(function(r){return '<tr><td class="rn">'+r.n+(RI[r.k]&&RI[r.k].sub?'<div style="font-size:10px;color:#94a3b8;font-weight:400;margin-top:2px">'+RI[r.k].sub+'</div>':'')+'</td><td>'+tip(r.k)+'</td><td class="rv" style="text-align:center">'+r.v1+'</td><td class="rv" style="text-align:center;font-weight:600">'+r.v2+'</td><td style="text-align:center">'+tH(trs[r.k])+'</td><td style="text-align:center">'+chip(r.p,r.m)+'</td></tr>';}).join('')+
+    rrows.map(function(r){
+      var isDeNA=r.k==='de'&&r.v2==='N/A';
+      var deNote='';
+      if(isDeNA){
+        var negEbitda2=R.fs2&&R.fs2.ebitda<=0;
+        var negEbitda1=R.fs1&&R.fs1.ebitda<=0;
+        if((negEbitda2&&R.fd2>0)||(negEbitda1&&R.fd1>0)){
+          deNote='<div style="font-size:10px;color:#d97706;background:#fef9c3;border-radius:4px;padding:3px 6px;margin-top:3px;line-height:1.4">'+
+            '⚠ Not available — EBITDA is negative or zero. In high-inflation contexts this may reflect inflation adjustment distortion (RECPAM/RT54) rather than actual operating performance. Refer to the analyst\'s qualitative assessment.'+
+          '</div>';
+        }
+      }
+      var scoreCell=isDeNA?'<span style="font-size:11px;color:#94a3b8">N/A*</span>':chip(r.p,r.m);
+      return '<tr><td class="rn">'+r.n+(RI[r.k]&&RI[r.k].sub?'<div style="font-size:10px;color:#94a3b8;font-weight:400;margin-top:2px">'+RI[r.k].sub+'</div>':'')+deNote+'</td><td>'+tip(r.k)+'</td><td class="rv" style="text-align:center">'+r.v1+'</td><td class="rv" style="text-align:center;font-weight:600">'+r.v2+'</td><td style="text-align:center">'+tH(trs[r.k])+'</td><td style="text-align:center">'+scoreCell+'</td></tr>';
+    }).join('')+
     '<tr style="background:var(--g50)"><td colspan="5" style="font-weight:600;color:var(--navy)">Ajuste tendencia ('+mej+' mejoras · '+det+' deterioros)</td><td style="text-align:center">'+chip(ta,5)+'</td></tr>'+
     '</tbody></table></div>'+
     '<div class="card"><div class="ct">Bloque B</div><table><thead><tr><th>Variable</th><th>Valor</th><th style="text-align:center">Pts</th></tr></thead><tbody>'+
@@ -1658,7 +1675,8 @@ function minResult(R){
     b1:R.b1, b2:R.b2, b3:R.b3, b4:R.b4,
     r1:R.r1, r2:R.r2, sc:R.sc, trs:R.trs,
     fs1:R.fs1, fs2:R.fs2,
-    vtf:R.vts.map(function(v){return v.a?1:0;})
+    vtf:R.vts.map(function(v){return v.a?1:0;}),
+    fd2:R.fd2, fd1:R.fd1
   };
 }
 function expandResult(m){
