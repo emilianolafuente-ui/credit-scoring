@@ -1794,7 +1794,7 @@ function doImport(){
     if(data.p1) document.getElementById('p1').value=data.p1;
     if(data.p2) document.getElementById('p2').value=data.p2;
     var fields=['vn','cv','go','da','gf','imp','sd','fd','b-caja','b-cxc','b-inv','b-oac','b-anc','b-pc','b-pnc','b-pn','a1-vn','a1-ebitda','a1-un','a1-ac','a1-at','a1-pc','a1-pt','a1-inv','a1-cxc','a1-sd','a1-fd'];
-    fields.forEach(function(f){if(data[f]!==undefined) document.getElementById(f).value=data[f];});
+    fields.forEach(function(f){var el=document.getElementById(f);if(data[f]!==undefined&&el) el.value=data[f];});
     aC();
     document.getElementById('import-modal').classList.remove('show');
     document.getElementById('import-code').value='';
