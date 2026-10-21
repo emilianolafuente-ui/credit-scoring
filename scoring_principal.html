@@ -1783,7 +1783,7 @@ function copyScript(){
 
 // ── IMPORT ────────────────────────────────────────────────────────────────────
 function doImport(){
-  var code=document.getElementById('import-code').value.trim();
+  var code=document.getElementById('import-code').value.trim().replace(/\s+/g,'');
   var err=document.getElementById('import-err');
   try{
     var data=JSON.parse(atob(code));
