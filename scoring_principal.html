@@ -248,8 +248,9 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--g50)}
       <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:5px">✅ Datos del cliente importados — completá los campos del analista antes de continuar:</div>
       <div style="font-size:12px;color:#78350f;line-height:1.8">
         • <strong>Monto solicitado (USD)</strong> — cuánto crédito pide el cliente<br>
-        • <strong>Volumen ventas últimos 12 meses (USD)</strong> — del proveedor, para calcular el LMT<br>
-        • <strong>Plazo de pago, días de mora promedio e incremento proyectado</strong><br>
+        • <strong>Tipo de cliente (Local / COMEX) y si es cliente nuevo</strong><br>
+        • <strong>TAM 2025 y Objetivo de ventas 2026 (USD)</strong> — para calcular el límite<br>
+        • <strong>Plazo pactado y atraso promedio</strong><br>
         • <strong>TC promedio y cierre</strong> si la moneda no es USD
       </div>
       <button onclick="document.getElementById('import-reminder').style.display='none'" style="margin-top:8px;background:none;border:1px solid #fcd34d;border-radius:6px;padding:4px 10px;font-size:11px;color:#92400e;cursor:pointer">Cerrar</button>
@@ -266,7 +267,8 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--g50)}
       </div>
       <div class="g2" style="margin-bottom:10px">
         <div><label>Nombre del cliente</label><input type="text" id="cn" placeholder="Importadora ABC S.A."></div>
-        <div><label>País</label><input type="text" id="cp" placeholder="Brasil"></div>
+        <div><label>País</label><input type="text" id="cp" placeholder="Brasil" list="rp-list" oninput="uRP()" autocomplete="off"><datalist id="rp-list"></datalist>
+          <div id="rp-box" style="display:none;margin-top:5px;font-size:11px;line-height:1.5;border-radius:6px;padding:5px 9px"></div></div>
       </div>
       <div class="g3">
         <div>
@@ -431,18 +433,23 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--g50)}
       </div>
 
       <div class="sec">Monto y fórmula de límite (Sección 3)</div>
-      <div class="g2" style="margin-bottom:9px">
+      <div class="g3" style="margin-bottom:9px">
+        <div><label>Tipo de cliente</label><select id="tcli" onchange="uRP();uLMT()"><option value="Local">Local</option><option value="COMEX">COMEX</option></select></div>
+        <div><label>Condición</label><select id="cnew" onchange="uLMT()"><option value="0">Cliente vigente</option><option value="1">Cliente nuevo</option></select></div>
         <div><label>Monto solicitado (USD)</label><input type="number" id="ms" placeholder="150000" oninput="uLMT()"></div>
-        <div><label>Volumen ventas últimos 12 meses (USD)</label><input type="number" id="vv" placeholder="500000" oninput="uLMT()"></div>
       </div>
-      <div class="g3">
-        <div><label>Plazo de pago (días)</label><input type="number" id="pp" value="60" oninput="uLMT()"></div>
-        <div><label>Días de mora promedio</label><input type="number" id="dm" value="0" oninput="uLMT()"></div>
-        <div><label>Incremento ventas proyectado (%)</label><input type="number" id="iv" value="10" oninput="uLMT()"></div>
+      <div class="g2" style="margin-bottom:9px">
+        <div><label id="vv-lbl">TAM 2025 — ventas del último año (USD)</label><input type="number" id="vv" placeholder="500000" oninput="uLMT()"></div>
+        <div><label>Objetivo de ventas 2026 (USD)</label><input type="number" id="ov" placeholder="550000" oninput="uLMT()"></div>
+      </div>
+      <div class="g2">
+        <div><label>Plazo pactado (días)</label><input type="number" id="pp" value="60" oninput="uLMT()"></div>
+        <div><label>Atraso promedio 2025 (días)</label><input type="number" id="dm" value="0" oninput="uLMT()"></div>
       </div>
       <div id="lmt-box" style="display:none;margin-top:9px;background:var(--g50);border:1px solid var(--bdr);border-radius:8px;padding:10px 13px">
-        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--g600);margin-bottom:2px">LMT — Vol. × (Plazo+Mora)/360 × (1+Incr.)</div>
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--g600);margin-bottom:2px">Límite Final = MIN(CN ; Techo) · CN = TAM × (CPR/360) × FC × FR_pago × FCF</div>
         <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:var(--navy)" id="lmt-val">—</div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--g600);margin-top:3px;line-height:1.6" id="lmt-det"></div>
       </div>
     </div>
     <div class="btn-row"><button class="btn bp" onclick="goS2()">Continuar →</button></div>
@@ -545,11 +552,11 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--g50)}
       <div style="display:flex;flex-direction:column;gap:11px">
         <div><label>B.1 — Riesgo País (Sec. 2.1)</label>
           <select id="b1"><option value="">— Seleccionar —</option>
-            <option value="10">Bajo (A) — Economía estable — 10 pts</option>
-            <option value="7">Moderado (B) — En desarrollo / restricciones cambiarias — 7 pts</option>
-            <option value="3">Alto (C) — Riesgos económicos y políticos — 3 pts</option>
-            <option value="0">Muy alto (D) — 0 pts</option>
-          </select></div>
+            <option value="10">Bajo — Grado inversor (Baa3 / BBB- o superior) — 10 pts</option>
+            <option value="7">Medio — Grado especulativo (Ba1–B3 / BB+–B-) — 7 pts</option>
+            <option value="3">Alto — Distress / default (Caa1 / CCC+ o inferior) — 3 pts</option>
+          </select>
+          <div id="b1-hint" style="display:none;margin-top:4px;font-size:11px;color:var(--g600)"></div></div>
         <div><label>B.2 — Historial de pago (Sec. 2.2 y 6.1)</label>
           <select id="b2"><option value="">— Seleccionar —</option>
             <option value="10">Paga en término o ≤5 días hábiles — 10 pts</option>
@@ -868,15 +875,159 @@ function goS2(){
   goS(2);
 }
 
-// ── LMT ───────────────────────────────────────────────────────────────────────
-function uLMT(){
-  var v=+document.getElementById('vv').value||0, p=+document.getElementById('pp').value||0;
-  var m=+document.getElementById('dm').value||0, i=+document.getElementById('iv').value||0;
-  if(!v||!p){document.getElementById('lmt-box').style.display='none';return;}
-  var lmt=v*((p+m)/360)*(1+i/100);
-  document.getElementById('lmt-box').style.display='block';
-  document.getElementById('lmt-val').textContent='USD '+Math.round(lmt).toLocaleString('es-AR');
+// ── LMT (Política de crédito jun-2026 — hoja Parámetros) ──────────────────────
+// CN = TAM × (CPR/360) × FC × FR_pago × FCF  ·  Límite Final = MIN(CN ; Techo)
+// Cada tramo: [hasta N días, valor]. Valores uniformes Local y COMEX.
+var LMT_P={
+  fr:[[15,0.95],[45,0.85],[90,0.70],[Infinity,0.55]],   // FR_pago por atraso promedio
+  fcf:[[30,1.00],[60,0.95],[90,0.90],[Infinity,0.85]],  // FCF por plazo pactado
+  techo:[[60,null],[90,3.0],[Infinity,2.5]],            // Techo en meses de TAM (null = sin techo)
+  frNuevo:0.95                                          // FR_pago cliente nuevo (atraso = 0)
+};
+function fd1(x){return (+x).toLocaleString('es-AR',{maximumFractionDigits:1});}
+function tramo(t,d){for(var i=0;i<t.length;i++){if(d<=t[i][0])return t[i][1];}return t[t.length-1][1];}
+function calcLMT(){
+  var tam=gv('vv'), plazo=gv('pp');
+  if(!tam||!plazo) return null;
+  var tipo=document.getElementById('tcli').value, nuevo=document.getElementById('cnew').value==='1';
+  var obj=nuevo?0:gv('ov'), atraso=nuevo?0:gv('dm');
+  var fc=obj?obj/tam:1;
+  var cpr=plazo+atraso;
+  var fr=nuevo?LMT_P.frNuevo:tramo(LMT_P.fr,atraso);
+  var fcf=tramo(LMT_P.fcf,plazo), tm=tramo(LMT_P.techo,plazo);
+  var cn=tam*(cpr/360)*fc*fr*fcf;
+  var techo=tm===null?null:tam/12*tm;
+  var fin=techo===null?cn:Math.min(cn,techo);
+  return {tipo:tipo,nuevo:nuevo,tam:tam,obj:obj,fc:fc,plazo:plazo,atraso:atraso,cpr:cpr,fr:fr,fcf:fcf,
+          cn:Math.round(cn),techo:techo===null?null:Math.round(techo),techoM:tm,lmt:Math.round(fin),rp:rpFind(document.getElementById('cp').value)};
 }
+function lmtDet(L){
+  var f2=function(x){return x.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});};
+  var u=function(x){return 'USD '+x.toLocaleString('es-AR');};
+  return 'FC '+f2(L.fc)+(L.nuevo?' (nuevo)':L.obj?'':' (sin objetivo)')+' · CPR '+fd1(L.cpr)+' d · FR_pago '+f2(L.fr)+' · FCF '+f2(L.fcf)+
+    '<br>CN '+u(L.cn)+' · Techo '+(L.techo===null?'sin techo (≤60 d)':u(L.techo)+' ('+String(L.techoM).replace('.',',')+' meses TAM)');
+}
+function uLMT(){
+  var nuevo=document.getElementById('cnew').value==='1';
+  ['ov','dm'].forEach(function(id){var el=document.getElementById(id);el.disabled=nuevo;el.style.opacity=nuevo?.45:1;});
+  document.getElementById('vv-lbl').textContent=nuevo?'VCA estimado — volumen de compra anual (USD)':'TAM 2025 — ventas del último año (USD)';
+  var L=calcLMT();
+  if(!L){document.getElementById('lmt-box').style.display='none';return;}
+  document.getElementById('lmt-box').style.display='block';
+  document.getElementById('lmt-val').textContent='USD '+L.lmt.toLocaleString('es-AR')+(L.techo!==null&&L.techo<L.cn?' (limitado por techo)':'');
+  document.getElementById('lmt-det').innerHTML=lmtDet(L);
+}
+
+// ── RIESGO PAÍS (Moody's / S&P / Fitch → Bajo / Medio / Alto) ────────────────
+var RP=[ // [País, Moody's, S&P, Fitch, Banda, Nota, alias] — hoja "NIVEL RIESGO", jun-2026
+  ["Arabia Saudí","Aa3","A+","A+","Bajo","","Saudi Arabia"],
+  ["Australia","Aaa","AAA","AAA","Bajo","",""],
+  ["Azerbaiyán","Baa3","NR","BB+","Bajo","S&P sin rating; Moody's inv.grade","Azerbaijan"],
+  ["Bélgica","Aa3","AA-","AA-","Bajo","","Belgium"],
+  ["Canadá","Aaa","AAA","AA+","Bajo","","Canada"],
+  ["Chile","A2","A","A-","Bajo","",""],
+  ["China","A1","A+","A+","Bajo","",""],
+  ["Chipre","A3","A-","BBB","Bajo","","Cyprus"],
+  ["Colombia","Baa3","BB-","BB+","Bajo","S&P especulativo; Moody's inv.grade",""],
+  ["Corea del Sur","Aa2","AA","AA-","Bajo","","South Korea|Korea|Republic of Korea"],
+  ["Croacia","A3","A","BBB+","Bajo","","Croatia"],
+  ["EE.UU.","Aa1","AA+","AA+","Bajo","Moody's bajó de Aaa en may-2025","United States|USA|US|United States of America|Estados Unidos|EEUU"],
+  ["Emiratos Árabes Unidos","Aa2","AA","AA-","Bajo","","United Arab Emirates|UAE|Emiratos Arabes"],
+  ["Eslovenia","A3","A","A","Bajo","","Slovenia"],
+  ["España","A3","A+","A-","Bajo","","Spain"],
+  ["Filipinas","Baa2","BBB+","BBB","Bajo","","Philippines"],
+  ["Francia","Aa3","A+","AA-","Bajo","","France"],
+  ["Grecia","Baa3","BBB","BB+","Bajo","Fitch en especulativo; Moody's/S&P en grado inversor","Greece"],
+  ["Hungría","Baa2","BBB-","BBB","Bajo","","Hungary"],
+  ["India","Baa3","BBB","BBB-","Bajo","",""],
+  ["Indonesia","Baa2","BBB","BBB","Bajo","",""],
+  ["Irlanda","Aa3","AA+","AA-","Bajo","","Ireland"],
+  ["Islas Caimán","Aa3","NR","NR","Bajo","Solo Moody's; NR en S&P y Fitch","Cayman Islands|Caiman"],
+  ["Islas Vírgenes GB","NR","BBB","NR","Bajo","Solo S&P (BBB, feb-2025); sin Moody's ni Fitch","British Virgin Islands|BVI|Islas Virgenes Britanicas"],
+  ["Israel","Baa1","A","A+","Bajo","Moody's rebajó por conflicto 2023",""],
+  ["Italia","Baa2","BBB+","BBB","Bajo","","Italy"],
+  ["Japón","A1","A+","A","Bajo","","Japan"],
+  ["Kuwait","A1","AA-","AA-","Bajo","",""],
+  ["Malasia","A3","A-","BBB+","Bajo","Fitch en límite inferior inv.grade","Malaysia"],
+  ["México","Baa2","BBB","BBB-","Bajo","Nota: aparece duplicado en lista; rating igual","Mexico"],
+  ["Nueva Zelanda","Aaa","AA+","AA+","Bajo","","New Zealand"],
+  ["Omán","Baa3","BBB-","BB","Bajo","Fitch en especulativo; Moody's/S&P en grado inversor","Oman"],
+  ["Panamá","Baa3","BBB-","BBB-","Bajo","","Panama"],
+  ["Paraguay","Baa3","BBB-","BB+","Bajo","Fitch en especulativo",""],
+  ["Países Bajos","Aaa","AAA","AAA","Bajo","","Netherlands|Holanda|The Netherlands|Holland"],
+  ["Perú","Baa1","BBB-","BBB","Bajo","","Peru"],
+  ["Polonia","A2","A-","A-","Bajo","","Poland"],
+  ["Portugal","A3","A+","BBB+","Bajo","",""],
+  ["Qatar","Aa2","AA","AA-","Bajo","",""],
+  ["Reino Unido","Aa3","AA","AA-","Bajo","","United Kingdom|UK|England|Inglaterra|Great Britain"],
+  ["República Checa","Aa3","AA-","AA-","Bajo","","Czech Republic|Czechia|Chequia"],
+  ["Rumanía","Baa3","BBB-","BBB-","Bajo","","Romania"],
+  ["Singapur","Aaa","AAA","AAA","Bajo","","Singapore"],
+  ["Suecia","Aaa","AAA","AAA","Bajo","","Sweden"],
+  ["Suiza","Aaa","AAA","AAA","Bajo","","Switzerland"],
+  ["Tailandia","Baa1","BBB+","BBB+","Bajo","","Thailand"],
+  ["Taiwan","Aa3","AA+","AA","Bajo","S&P: AA+ (may-2026)","Taiwán"],
+  ["Uruguay","Baa2","BBB","BBB","Bajo","",""],
+  ["Bangladesh","B2","B+","BB-","Medio","",""],
+  ["Brasil","Ba1","BB","BB-","Medio","","Brazil"],
+  ["Costa Rica","Ba2","BB","BB-","Medio","",""],
+  ["El Salvador","B1","B-","B-","Medio","",""],
+  ["Guatemala","Ba1","BB+","BB","Medio","",""],
+  ["Jordan","Ba3","BB-","BB-","Medio","","Jordania"],
+  ["Marruecos","Ba1","BB+","BB+","Medio","","Morocco"],
+  ["Nepal","NR","NR","BB-","Medio","Solo Fitch; primera calificación nov-2024",""],
+  ["Nigeria","NR","B","B-","Medio","Sin Moody's",""],
+  ["Serbia","NR","BBB-","BB+","Medio","S&P en grado inversor; sin Moody's",""],
+  ["Tanzania","B1","NR","B+","Medio","Sin S&P",""],
+  ["Turquía","B1","BB-","BB-","Medio","","Turkey|Turkiye|Türkiye"],
+  ["Vietnam","Ba2","BB+","BB+","Medio","","Viet Nam"],
+  ["Argentina","Caa1","CCC+","C","Alto","Moody's subió de Caa3 a Caa1 en 2025",""],
+  ["Bahráin","B2","B","B+","Alto","","Bahrain|Bahrein"],
+  ["Bolivia","Ca","CCC+","B-","Alto","Moody's en distress; Fitch más optimista",""],
+  ["Ecuador","Caa1","B-","B-","Alto","",""],
+  ["Egipto","Caa1","B","B","Alto","","Egypt"],
+  ["Líbano","C","SD","RD","Alto","Default soberano desde 2020","Lebanon"],
+  ["Pakistán","Caa1","B-","CCC-","Alto","","Pakistan"],
+  ["Puerto Rico","NR","NR","NR","Alto","Territorio EE.UU.; Moody's retiró rating 2021; deuda reestructurada",""],
+  ["Ucrania","Caa3","CCC+","CC","Alto","Default parcial / reestructuración 2022","Ukraine"]
+];
+var RP_PTS={Bajo:10,Medio:7,Alto:3};
+function rpNorm(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');}
+function rpFind(s){
+  var k=rpNorm(s); if(!k) return null;
+  for(var i=0;i<RP.length;i++){
+    var names=[RP[i][0]].concat(RP[i][6]?RP[i][6].split('|'):[]);
+    if(names.some(function(n){return rpNorm(n)===k;})) return {pais:RP[i][0],mo:RP[i][1],sp:RP[i][2],fi:RP[i][3],banda:RP[i][4],nota:RP[i][5]};
+  }
+  return null;
+}
+function rpAviso(banda,tipo){
+  if(tipo!=='COMEX') return '';
+  if(banda==='Alto') return 'COMEX riesgo Alto: escalar a CFO, documentación adicional y techo de 1 pedido en tránsito hasta 6 meses de historial de pago (Manual 2.7).';
+  if(banda==='Medio') return 'COMEX riesgo Medio: exigir documentación adicional.';
+  return '';
+}
+function uRP(){
+  var box=document.getElementById('rp-box'), hint=document.getElementById('b1-hint');
+  var s=document.getElementById('cp').value, r=rpFind(s), tipo=document.getElementById('tcli').value;
+  if(!s.trim()){box.style.display='none';hint.style.display='none';return;}
+  box.style.display='block';
+  if(!r){
+    box.style.cssText+=';background:var(--g50);border:1px solid var(--bdr);color:var(--g600)';
+    box.textContent='País no encontrado en la tabla de riesgo soberano — elegí B.1 manualmente.';
+    hint.style.display='none';return;
+  }
+  var col={Bajo:['var(--gl)','var(--gb)','var(--gr)'],Medio:['var(--yl)','var(--yb)','var(--ye)'],Alto:['var(--rl)','var(--rb)','var(--re)']}[r.banda];
+  box.style.cssText+=';background:'+col[0]+';border:1px solid '+col[1]+';color:'+col[2];
+  var av=rpAviso(r.banda,tipo);
+  box.innerHTML='<strong>Riesgo País '+r.banda+'</strong> · Moody\'s '+r.mo+' · S&amp;P '+r.sp+' · Fitch '+r.fi+
+    (r.nota?'<br>'+r.nota:'')+(av?'<br><strong>⚠ '+av+'</strong>':'');
+  // B.1 se completa automáticamente solo para COMEX; para Local queda como referencia
+  if(tipo==='COMEX'){document.getElementById('b1').value=RP_PTS[r.banda];hint.textContent='Completado según tabla de Riesgo País ('+r.pais+': '+r.banda+').';}
+  else hint.textContent='Referencia tabla Riesgo País: '+r.pais+' = '+r.banda+' ('+RP_PTS[r.banda]+' pts). Cliente Local: elegí B.1 manualmente.';
+  hint.style.display='block';
+}
+(function(){var dl=document.getElementById('rp-list');if(dl)dl.innerHTML=RP.map(function(r){return '<option value="'+r[0]+'">';}).join('');})();
 
 // ── AUTO CALC ─────────────────────────────────────────────────────────────────
 function aC(){
@@ -1075,8 +1226,8 @@ function calc(){
   var sB=b1+b2+b3+b4, tot=Math.min(100,sA+sB);
   var nv=tot>=75?'bajo':tot>=55?'medio':'alto';
   var pct=nv==='bajo'?100:nv==='medio'?75:0;
-  var vv=+document.getElementById('vv').value||0;
-  var lmt=vv?vv*((gv('pp')+gv('dm'))/360)*(1+gv('iv')/100):0;
+  var lmd=calcLMT();
+  var lmt=lmd?lmd.lmt:0;
   var laprov=Math.round(lmt*pct/100);
   var msol=+document.getElementById('ms').value||laprov;
   var an=msol<=75000?0:msol<=200000?1:msol<=500000?2:3;
@@ -1090,7 +1241,7 @@ function calc(){
     {l:'Referencias desfavorables sin garantía (Sec. 4.1)',a:b3<0}
   ];
   var anyV=vts.some(v=>v.a);
-  var b1l={10:'Bajo (A)',7:'Moderado (B)',3:'Alto (C)',0:'Muy alto (D)'};
+  var b1l=B1L;
   var b2l={10:'≤5 días hábiles',5:'6–15 días hábiles',2:'15–30 días',0:'>30 días/default'};
   var b3l={2:'2+ ref. favorables',1:'1 ref. favorable',0:'Sin referencias',['-2']:'Ref. desfavorables'};
   var b4l={8:'>2 años buen comport.',6:'1–2 años',4:'Cliente nuevo',0:'Mal comportamiento'};
@@ -1117,7 +1268,7 @@ function calc(){
   ];
 
   // Store result for PDF generation
-  lastResult={nom,pai,mon,pp1,pp2,hoy,nxtStr,tcPv,tcCv,msol,lmt:Math.round(lmt),laprov,pct,nv,tot,sA,sB,ta,mej,det,an,anyV,vts,r1,r2,sc,trs,rrows,b1,b2,b3,b4,b1l,b2l,b3l,b4l,ACS,decT,cbT,icns,fs1,fs2,fd2,fd1:a1fd};
+  lastResult={nom,pai,mon,pp1,pp2,hoy,nxtStr,tcPv,tcCv,msol,lmt:Math.round(lmt),lmd,laprov,pct,nv,tot,sA,sB,ta,mej,det,an,anyV,vts,r1,r2,sc,trs,rrows,b1,b2,b3,b4,b1l,b2l,b3l,b4l,ACS,decT,cbT,icns,fs1,fs2,fd2,fd1:a1fd};
 
   // Save to Google Sheets (con detalle comprimido ~1.5KB para descarga cross-device)
   var cfg=getCfg();
@@ -1142,6 +1293,37 @@ function calc(){
   // Build internal result HTML
   document.getElementById('rc').innerHTML = buildInternalHtml(lastResult);
   goS(4);
+}
+
+// Etiquetas B.1 (0 = "Muy alto (D)" se conserva para evaluaciones anteriores a jun-2026)
+var B1L={10:'Bajo — grado inversor',7:'Medio — grado especulativo',3:'Alto — distress / default',0:'Muy alto (D)'};
+
+// Desglose del límite (solo evaluaciones con política jun-2026; las anteriores no tienen lmd)
+function lmtCard(R){
+  var L=R.lmd; if(!L) return '';
+  var u=function(x){return 'USD '+x.toLocaleString('es-AR');};
+  var f2=function(x){return x.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});};
+  var rows=[
+    ['Tipo de cliente',L.tipo+(L.nuevo?' · Cliente nuevo':' · Cliente vigente')],
+    [L.nuevo?'VCA estimado':'TAM 2025',u(L.tam)],
+    ['Objetivo ventas 2026',L.nuevo?'— (nuevo)':L.obj?u(L.obj):'— (sin objetivo)'],
+    ['FC (Objetivo / TAM)',f2(L.fc)],
+    ['CPR (Plazo '+fd1(L.plazo)+' + Atraso '+fd1(L.atraso)+')',fd1(L.cpr)+' días'],
+    ['FR_pago',f2(L.fr)],
+    ['FCF',f2(L.fcf)],
+    ['CN calculado',u(L.cn)],
+    ['Techo por plazo',L.techo===null?'Sin techo (≤60 días)':u(L.techo)+' ('+String(L.techoM).replace('.',',')+' meses TAM)'],
+    ['Límite Final = MIN(CN ; Techo)',u(L.lmt)],
+    ['Límite aprobado ('+R.pct+'% por scoring)',R.pct===0?'Rechazado':u(R.laprov)]
+  ];
+  var av=L.rp?rpAviso(L.rp.banda,L.tipo):'';
+  return '<div class="card"><div class="ct">Límite de crédito — Política jun-2026</div>'+
+    '<div class="cs">CN = TAM × (CPR/360) × FC × FR_pago × FCF · Límite Final = MIN(CN ; Techo)'+
+    (L.rp?' · Riesgo País '+L.rp.pais+': <strong>'+L.rp.banda+'</strong> ('+L.rp.mo+' / '+L.rp.sp+' / '+L.rp.fi+')':'')+'</div>'+
+    (av?'<div style="background:var(--rl);border:1px solid var(--rb);color:#7f1d1d;border-radius:7px;padding:7px 11px;font-size:11px;margin-bottom:8px">⚠ '+av+'</div>':'')+
+    '<table><tbody>'+rows.map(function(r,i){var hl=i>=rows.length-2;
+      return '<tr style="'+(hl?'font-weight:700;background:var(--g50)':'')+'"><td class="rn">'+r[0]+'</td><td style="text-align:right;font-family:\'DM Mono\',monospace;font-size:11px">'+r[1]+'</td></tr>';}).join('')+
+    '</tbody></table></div>';
 }
 
 // ── BUILD INTERNAL HTML (from result object, works on any device) ─────────────
@@ -1174,6 +1356,7 @@ function buildInternalHtml(R){
     '<div style="font-family:\'DM Mono\',monospace;font-size:16px;font-weight:700;color:'+(nv==='alto'?'var(--re)':nv==='medio'?'var(--ye)':'var(--gr)')+'">'+
     (pct===0?'Rechazado':'USD '+laprov.toLocaleString('es-AR'))+'</div></div>':'')+
     '</div>'+
+    lmtCard(R)+
     '<div class="bg2"><div class="bc"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><div><div style="font-weight:600;color:var(--navy);font-size:12px">Bloque A — Financiero</div><div style="font-size:10px;color:var(--g400)">Máx. 70 pts · Tendencia: '+(ta>=0?'+':'')+ta+'</div></div><div style="font-family:\'DM Mono\',monospace;font-size:24px;font-weight:500;color:var(--navy)">'+sA+'</div></div><div class="bb"><div style="height:100%;width:'+Math.max(0,sA/70*100)+'%;background:linear-gradient(90deg,#1d4ed8,#3b82f6);border-radius:99px"></div></div></div>'+
     '<div class="bc"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><div><div style="font-weight:600;color:var(--navy);font-size:12px">Bloque B — Cualitativo</div><div style="font-size:10px;color:var(--g400)">Máx. 30 pts</div></div><div style="font-family:\'DM Mono\',monospace;font-size:24px;font-weight:500;color:var(--navy)">'+sB+'</div></div><div class="bb"><div style="height:100%;width:'+Math.max(0,sB/30*100)+'%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:99px"></div></div></div></div>'+
     '<div class="card"><div class="ct">Estados Financieros en USD</div>'+
@@ -1669,7 +1852,7 @@ function minResult(R){
   return {
     nom:R.nom, pai:R.pai, mon:R.mon, pp1:R.pp1, pp2:R.pp2,
     hoy:R.hoy, nxtStr:R.nxtStr, tcPv:R.tcPv, tcCv:R.tcCv,
-    msol:R.msol, lmt:R.lmt, laprov:R.laprov, pct:R.pct,
+    msol:R.msol, lmt:R.lmt, lmd:R.lmd, laprov:R.laprov, pct:R.pct,
     nv:R.nv, tot:R.tot, sA:R.sA, sB:R.sB,
     ta:R.ta, mej:R.mej, det:R.det, an:R.an, anyV:R.anyV,
     b1:R.b1, b2:R.b2, b3:R.b3, b4:R.b4,
@@ -1704,7 +1887,7 @@ function expandResult(m){
     {k:'ro',n:'A.9 Rotación de Activos',v1:fmt(m.r1.ro,'x'),v2:fmt(m.r2.ro,'x'),p:m.sc.ro,m:5}
   ];
   // Reconstruct lookup tables
-  R.b1l={10:'Bajo (A)',7:'Moderado (B)',3:'Alto (C)',0:'Muy alto (D)'};
+  R.b1l=B1L;
   R.b2l={10:'≤5 días hábiles',5:'6–15 días hábiles',2:'15–30 días',0:'>30 días/default'};
   R.b3l={2:'2+ ref. favorables',1:'1 ref. favorable',0:'Sin referencias',['-2']:'Ref. desfavorables'};
   R.b4l={8:'>2 años buen comport.',6:'1–2 años',4:'Cliente nuevo',0:'Mal comportamiento'};
@@ -1789,7 +1972,7 @@ function doImport(){
     var data=JSON.parse(atob(code));
     // Fill form fields
     if(data.nombre) document.getElementById('cn').value=data.nombre;
-    if(data.pais)   document.getElementById('cp').value=data.pais;
+    if(data.pais)  {document.getElementById('cp').value=data.pais;uRP();}
     if(data.moneda){document.getElementById('cm').value=data.moneda;onMoneda();}
     if(data.p1) document.getElementById('p1').value=data.p1;
     if(data.p2) document.getElementById('p2').value=data.p2;
@@ -1812,8 +1995,9 @@ function doImport(){
 // ── RESET ─────────────────────────────────────────────────────────────────────
 function resetAll(){
   var rem=document.getElementById('import-reminder'); if(rem) rem.style.display='none';
-  ['cn','cp','p1','p2','ms','vv','fx-yr'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('pp').value=60;document.getElementById('dm').value=0;document.getElementById('iv').value=10;
+  ['cn','cp','p1','p2','ms','vv','ov','fx-yr'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('pp').value=60;document.getElementById('dm').value=0;
+  document.getElementById('tcli').value='Local';document.getElementById('cnew').value='0';
   document.getElementById('cm').value='';document.getElementById('fx-box').style.display='none';
   document.getElementById('lmt-box').style.display='none';document.getElementById('fx-grid').style.display='none';
   document.getElementById('tc-p').value='1';document.getElementById('tc-c').value='1';
@@ -1822,6 +2006,7 @@ function resetAll(){
    'a1-vn','a1-ebitda','a1-un','a1-ac','a1-at','a1-pc','a1-pt','a1-inv','a1-cxc','a1-sd','a1-fd'
   ].forEach(id=>document.getElementById(id).value='');
   ['b1','b2','b3','b4'].forEach(id=>document.getElementById(id).value='');
+  uLMT();uRP();
   document.getElementById('es-exc').checked=false;
   document.getElementById('exc-detail').style.display='none';
   document.querySelectorAll('.exc-req').forEach(b=>b.checked=false);
