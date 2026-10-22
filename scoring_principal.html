@@ -440,7 +440,11 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--g50)}
       </div>
       <div class="g2" style="margin-bottom:9px">
         <div><label id="vv-lbl">TAM 2025 — ventas del último año (USD)</label><input type="number" id="vv" placeholder="500000" oninput="uLMT()"></div>
-        <div><label>Objetivo de ventas 2026 (USD)</label><input type="number" id="ov" placeholder="550000" oninput="uLMT()"></div>
+        <div><label>Objetivo de ventas 2026 (USD)</label><input type="number" id="ov" placeholder="550000" oninput="uLMT()">
+          <div id="fc-cap" style="display:none;margin-top:5px;background:var(--yl);border:1px solid var(--yb);color:#92400e;border-radius:6px;padding:5px 9px;font-size:11px;line-height:1.5">
+            <div id="fc-cap-txt"></div>
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;text-transform:none;letter-spacing:0;margin:3px 0 0;color:#92400e"><input type="checkbox" id="fc-cfo" onchange="uLMT()"> FC superior aprobado explícitamente por CFO</label>
+          </div></div>
       </div>
       <div class="g2">
         <div><label>Plazo pactado (días)</label><input type="number" id="pp" value="60" oninput="uLMT()"></div>
@@ -877,12 +881,14 @@ function goS2(){
 
 // ── LMT (Política de crédito jun-2026 — hoja Parámetros) ──────────────────────
 // CN = TAM × (CPR/360) × FC × FR_pago × FCF  ·  Límite Final = MIN(CN ; Techo)
+// CPR = plazo pactado (el atraso solo reduce vía FR_pago). FC truncado a fcMax salvo aprobación CFO.
 // Cada tramo: [hasta N días, valor]. Valores uniformes Local y COMEX.
 var LMT_P={
   fr:[[15,0.95],[45,0.85],[90,0.70],[Infinity,0.55]],   // FR_pago por atraso promedio
   fcf:[[30,1.00],[60,0.95],[90,0.90],[Infinity,0.85]],  // FCF por plazo pactado
   techo:[[60,null],[90,3.0],[Infinity,2.5]],            // Techo en meses de TAM (null = sin techo)
-  frNuevo:0.95                                          // FR_pago cliente nuevo (atraso = 0)
+  frNuevo:0.95,                                         // FR_pago cliente nuevo (atraso = 0)
+  fcMax:1.20                                            // Techo de FC (objetivo / TAM)
 };
 function fd1(x){return (+x).toLocaleString('es-AR',{maximumFractionDigits:1});}
 function tramo(t,d){for(var i=0;i<t.length;i++){if(d<=t[i][0])return t[i][1];}return t[t.length-1][1];}
@@ -891,20 +897,26 @@ function calcLMT(){
   if(!tam||!plazo) return null;
   var tipo=document.getElementById('tcli').value, nuevo=document.getElementById('cnew').value==='1';
   var obj=nuevo?0:gv('ov'), atraso=nuevo?0:gv('dm');
-  var fc=obj?obj/tam:1;
-  var cpr=plazo+atraso;
+  var fcReal=obj?obj/tam:1;
+  var fcCFO=fcReal>LMT_P.fcMax&&document.getElementById('fc-cfo').checked;
+  var fc=fcCFO?fcReal:Math.min(fcReal,LMT_P.fcMax);
+  var cpr=plazo;
   var fr=nuevo?LMT_P.frNuevo:tramo(LMT_P.fr,atraso);
   var fcf=tramo(LMT_P.fcf,plazo), tm=tramo(LMT_P.techo,plazo);
   var cn=tam*(cpr/360)*fc*fr*fcf;
   var techo=tm===null?null:tam/12*tm;
   var fin=techo===null?cn:Math.min(cn,techo);
-  return {tipo:tipo,nuevo:nuevo,tam:tam,obj:obj,fc:fc,plazo:plazo,atraso:atraso,cpr:cpr,fr:fr,fcf:fcf,
+  return {v:2,tipo:tipo,nuevo:nuevo,tam:tam,obj:obj,fc:fc,fcReal:fcReal,fcMax:LMT_P.fcMax,fcCFO:fcCFO,plazo:plazo,atraso:atraso,cpr:cpr,fr:fr,fcf:fcf,
           cn:Math.round(cn),techo:techo===null?null:Math.round(techo),techoM:tm,lmt:Math.round(fin),rp:rpFind(document.getElementById('cp').value)};
+}
+function fcNota(L,f2){
+  if(L.fcReal===undefined||L.fcReal<=L.fcMax) return '';
+  return L.fcCFO?' (objetivo, supera '+f2(L.fcMax)+' — aprobado CFO)':' (truncado; objetivo '+f2(L.fcReal)+')';
 }
 function lmtDet(L){
   var f2=function(x){return x.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});};
   var u=function(x){return 'USD '+x.toLocaleString('es-AR');};
-  return 'FC '+f2(L.fc)+(L.nuevo?' (nuevo)':L.obj?'':' (sin objetivo)')+' · CPR '+fd1(L.cpr)+' d · FR_pago '+f2(L.fr)+' · FCF '+f2(L.fcf)+
+  return 'FC '+f2(L.fc)+(L.nuevo?' (nuevo)':!L.obj?' (sin objetivo)':fcNota(L,f2))+' · CPR '+fd1(L.cpr)+' d · FR_pago '+f2(L.fr)+' (atraso '+fd1(L.atraso)+' d) · FCF '+f2(L.fcf)+
     '<br>CN '+u(L.cn)+' · Techo '+(L.techo===null?'sin techo (≤60 d)':u(L.techo)+' ('+String(L.techoM).replace('.',',')+' meses TAM)');
 }
 function uLMT(){
@@ -912,6 +924,10 @@ function uLMT(){
   ['ov','dm'].forEach(function(id){var el=document.getElementById(id);el.disabled=nuevo;el.style.opacity=nuevo?.45:1;});
   document.getElementById('vv-lbl').textContent=nuevo?'VCA estimado — volumen de compra anual (USD)':'TAM 2025 — ventas del último año (USD)';
   var L=calcLMT();
+  var over=!!L&&!nuevo&&L.fcReal>LMT_P.fcMax;
+  document.getElementById('fc-cap').style.display=over?'block':'none';
+  if(over) document.getElementById('fc-cap-txt').textContent='FC objetivo '+L.fcReal.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2})+
+    ' supera el máximo '+String(LMT_P.fcMax.toFixed(2)).replace('.',',')+(L.fcCFO?' — se aplica el FC objetivo por aprobación CFO.':' — se trunca a '+String(LMT_P.fcMax.toFixed(2)).replace('.',',')+' para el cálculo.');
   if(!L){document.getElementById('lmt-box').style.display='none';return;}
   document.getElementById('lmt-box').style.display='block';
   document.getElementById('lmt-val').textContent='USD '+L.lmt.toLocaleString('es-AR')+(L.techo!==null&&L.techo<L.cn?' (limitado por techo)':'');
@@ -1307,9 +1323,9 @@ function lmtCard(R){
     ['Tipo de cliente',L.tipo+(L.nuevo?' · Cliente nuevo':' · Cliente vigente')],
     [L.nuevo?'VCA estimado':'TAM 2025',u(L.tam)],
     ['Objetivo ventas 2026',L.nuevo?'— (nuevo)':L.obj?u(L.obj):'— (sin objetivo)'],
-    ['FC (Objetivo / TAM)',f2(L.fc)],
-    ['CPR (Plazo '+fd1(L.plazo)+' + Atraso '+fd1(L.atraso)+')',fd1(L.cpr)+' días'],
-    ['FR_pago',f2(L.fr)],
+    ['FC (Objetivo / TAM'+(L.v>=2?', máx. '+f2(L.fcMax):'')+')',f2(L.fc)+(L.v>=2?fcNota(L,f2):'')],
+    L.v>=2?['CPR (= Plazo pactado)',fd1(L.cpr)+' días']:['CPR (Plazo '+fd1(L.plazo)+' + Atraso '+fd1(L.atraso)+')',fd1(L.cpr)+' días'],
+    ['FR_pago'+(L.nuevo?'':' (atraso '+fd1(L.atraso)+' días)'),f2(L.fr)],
     ['FCF',f2(L.fcf)],
     ['CN calculado',u(L.cn)],
     ['Techo por plazo',L.techo===null?'Sin techo (≤60 días)':u(L.techo)+' ('+String(L.techoM).replace('.',',')+' meses TAM)'],
@@ -1997,7 +2013,7 @@ function resetAll(){
   var rem=document.getElementById('import-reminder'); if(rem) rem.style.display='none';
   ['cn','cp','p1','p2','ms','vv','ov','fx-yr'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('pp').value=60;document.getElementById('dm').value=0;
-  document.getElementById('tcli').value='Local';document.getElementById('cnew').value='0';
+  document.getElementById('tcli').value='Local';document.getElementById('cnew').value='0';document.getElementById('fc-cfo').checked=false;
   document.getElementById('cm').value='';document.getElementById('fx-box').style.display='none';
   document.getElementById('lmt-box').style.display='none';document.getElementById('fx-grid').style.display='none';
   document.getElementById('tc-p').value='1';document.getElementById('tc-c').value='1';
