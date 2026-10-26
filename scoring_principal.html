@@ -945,7 +945,8 @@ var CONDS=[
   {c:'0061',m:'E',d:'40% anticipado - 60% 60 días a partir de la fecha de facturación',t:[[40,0,'a'],[60,60,'f']]}
 ];
 function condsFor(tipo){return CONDS.filter(function(c){return c.m==='LE'||(tipo==='COMEX'?c.m==='E':c.m==='LH');});}
-// pw = plazo ponderado Σ %×días · fin = fracción financiada (no anticipada) · maxD = último vencimiento
+// pw = plazo ponderado solo sobre la parte a crédito: Σ(%×días)/Σ% de los tramos no anticipados
+// (el anticipo no acorta el plazo: reduce el monto prestado vía fin) · fin = fracción financiada · maxD = último vencimiento
 function condInfo(c,tr){
   var pw=0,fin=0,maxD=0,rec=false;
   c.t.forEach(function(x){
@@ -953,6 +954,7 @@ function condInfo(c,tr){
     var d=x[1]+(x[2]==='r'?tr:0); if(x[2]==='r') rec=true;
     pw+=x[0]/100*d; fin+=x[0]/100; maxD=Math.max(maxD,d);
   });
+  pw=fin?pw/fin:0;
   return {c:c.c,d:c.d,pw:Math.round(pw*10)/10,fin:Math.round(fin*100)/100,maxD:maxD,rec:rec};
 }
 function condSel(){
@@ -1031,7 +1033,7 @@ function simHtml(L,pct,nv,preview){
     }).join('')+'</tbody></table></details>';
   h+='<div style="font-size:10px;color:var(--g400);line-height:1.5">'+
     (preview?'Vista previa antes del scoring (100%). El resultado final aplica el % del nivel de riesgo. ':'')+
-    'Plazo ponderado = Σ % × días (anticipos = 0; contra recepción suma '+fd1(L.transito)+' días de tránsito). Máx. por pedido = '+lim.toLowerCase()+' / % financiado. '+
+    'Plazo ponderado = promedio de días de la parte a crédito, ponderado por su % (el anticipo no entra al plazo: reduce el monto financiado; contra recepción suma '+fd1(L.transito)+' días de tránsito). Máx. por pedido = '+lim.toLowerCase()+' / % financiado. '+
     '<strong>No considera saldo pendiente de cuenta corriente: verificar en SAP antes de liberar.</strong></div>';
   return h;
 }
