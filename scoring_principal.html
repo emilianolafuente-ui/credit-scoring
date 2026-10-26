@@ -434,8 +434,8 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--g50)}
 
       <div class="sec">Monto y fórmula de límite (Sección 3)</div>
       <div class="g3" style="margin-bottom:9px">
-        <div><label>Tipo de cliente</label><select id="tcli" onchange="uRP();uLMT()"><option value="Local">Local</option><option value="COMEX">COMEX</option></select></div>
-        <div><label>Condición</label><select id="cnew" onchange="uLMT()"><option value="0">Cliente vigente</option><option value="1">Cliente nuevo</option></select></div>
+        <div><label>Tipo de cliente</label><select id="tcli" onchange="uRP();fillConds();uLMT()"><option value="Local">Local</option><option value="COMEX">COMEX</option></select></div>
+        <div><label>Condición del cliente</label><select id="cnew" onchange="uLMT()"><option value="0">Cliente vigente</option><option value="1">Cliente nuevo</option></select></div>
         <div><label>Monto solicitado (USD)</label><input type="number" id="ms" placeholder="150000" oninput="uLMT()"></div>
       </div>
       <div class="g2" style="margin-bottom:9px">
@@ -446,8 +446,16 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--g50)}
             <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;text-transform:none;letter-spacing:0;margin:3px 0 0;color:#92400e"><input type="checkbox" id="fc-cfo" onchange="uLMT()"> FC superior aprobado explícitamente por CFO</label>
           </div></div>
       </div>
+      <div class="g2" style="margin-bottom:9px">
+        <div><label>Tipo de consulta</label><select id="cmodo" onchange="uLMT()"><option value="act">Actualización de información (estimado anual)</option><option value="compra">Compra puntual</option></select></div>
+        <div id="compra-wrap" style="display:none"><label>Importe de la compra puntual (USD)</label><input type="number" id="cimp" placeholder="80000" oninput="uLMT()"></div>
+      </div>
+      <div class="g2" style="margin-bottom:9px">
+        <div><label>Condición de pago</label><select id="cpag" onchange="uLMT()"></select></div>
+        <div id="tr-wrap" style="display:none"><label>Días de tránsito hasta recepción</label><input type="number" id="ctr" value="30" oninput="uLMT()"></div>
+      </div>
       <div class="g2">
-        <div><label>Plazo pactado (días)</label><input type="number" id="pp" value="60" oninput="uLMT()"></div>
+        <div><label id="pp-lbl">Plazo pactado (días)</label><input type="number" id="pp" value="60" oninput="uLMT()"></div>
         <div><label>Atraso promedio 2025 (días)</label><input type="number" id="dm" value="0" oninput="uLMT()"></div>
       </div>
       <div id="lmt-box" style="display:none;margin-top:9px;background:var(--g50);border:1px solid var(--bdr);border-radius:8px;padding:10px 13px">
@@ -455,6 +463,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--g50)}
         <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:var(--navy)" id="lmt-val">—</div>
         <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--g600);margin-top:3px;line-height:1.6" id="lmt-det"></div>
       </div>
+      <div id="sim-box" style="display:none;margin-top:9px"></div>
     </div>
     <div class="btn-row"><button class="btn bp" onclick="goS2()">Continuar →</button></div>
   </div>
@@ -892,22 +901,139 @@ var LMT_P={
 };
 function fd1(x){return (+x).toLocaleString('es-AR',{maximumFractionDigits:1});}
 function tramo(t,d){for(var i=0;i<t.length;i++){if(d<=t[i][0])return t[i][1];}return t[t.length-1][1];}
-function calcLMT(){
-  var tam=gv('vv'), plazo=gv('pp');
-  if(!tam||!plazo) return null;
-  var tipo=document.getElementById('tcli').value, nuevo=document.getElementById('cnew').value==='1';
-  var obj=nuevo?0:gv('ov'), atraso=nuevo?0:gv('dm');
-  var fcReal=obj?obj/tam:1;
-  var fcCFO=fcReal>LMT_P.fcMax&&document.getElementById('fc-cfo').checked;
+// Límite para un plazo dado. P: {tam, obj, nuevo, atraso, cfo}
+function lmtCore(P,plazo){
+  var fcReal=P.obj?P.obj/P.tam:1;
+  var fcCFO=fcReal>LMT_P.fcMax&&!!P.cfo;
   var fc=fcCFO?fcReal:Math.min(fcReal,LMT_P.fcMax);
-  var cpr=plazo;
-  var fr=nuevo?LMT_P.frNuevo:tramo(LMT_P.fr,atraso);
+  var fr=P.nuevo?LMT_P.frNuevo:tramo(LMT_P.fr,P.atraso);
   var fcf=tramo(LMT_P.fcf,plazo), tm=tramo(LMT_P.techo,plazo);
-  var cn=tam*(cpr/360)*fc*fr*fcf;
-  var techo=tm===null?null:tam/12*tm;
+  var cn=P.tam*(plazo/360)*fc*fr*fcf;
+  var techo=tm===null?null:P.tam/12*tm;
   var fin=techo===null?cn:Math.min(cn,techo);
-  return {v:2,tipo:tipo,nuevo:nuevo,tam:tam,obj:obj,fc:fc,fcReal:fcReal,fcMax:LMT_P.fcMax,fcCFO:fcCFO,plazo:plazo,atraso:atraso,cpr:cpr,fr:fr,fcf:fcf,
-          cn:Math.round(cn),techo:techo===null?null:Math.round(techo),techoM:tm,lmt:Math.round(fin),rp:rpFind(document.getElementById('cp').value)};
+  return {fc:fc,fcReal:fcReal,fcMax:LMT_P.fcMax,fcCFO:fcCFO,cpr:plazo,fr:fr,fcf:fcf,
+          cn:Math.round(cn),techo:techo===null?null:Math.round(techo),techoM:tm,lmt:Math.round(fin),lmtRaw:fin};
+}
+function calcLMT(){
+  var tam=gv('vv'), ci=condSel(), plazo=ci?ci.pw:gv('pp');
+  if(!tam||(!plazo&&!(ci&&ci.fin===0))) return null;
+  var tipo=document.getElementById('tcli').value, nuevo=document.getElementById('cnew').value==='1';
+  var P={tam:tam,obj:nuevo?0:gv('ov'),nuevo:nuevo,atraso:nuevo?0:gv('dm'),cfo:document.getElementById('fc-cfo').checked};
+  var modo=document.getElementById('cmodo').value;
+  var core=lmtCore(P,plazo); delete core.lmtRaw;
+  return Object.assign({v:3,tipo:tipo,nuevo:nuevo,tam:tam,obj:P.obj,plazo:plazo,atraso:P.atraso},core,
+    {modo:modo,compra:modo==='compra'?gv('cimp'):0,cond:ci?ci.c:'',transito:gv('ctr'),rp:rpFind(document.getElementById('cp').value)});
+}
+
+// ── CONDICIONES DE PAGO (Salesforce, vigencia 10.02.25) ──────────────────────
+// m: LE = Local/Expo · E = Expo · LH = Local/Hospital
+// t: tramos [%, días, base] · base a = anticipado/antes del envío (sin crédito), f = fecha factura/embarque/AWB, r = contra recepción (+ tránsito)
+// "Sin ingreso de divisas" (0100, muestras) no se incluye: no es una venta a crédito.
+var CONDS=[
+  {c:'0135',m:'LE',d:'100% Anticipado',t:[[100,0,'a']]},
+  {c:'0017',m:'LE',d:'30 días a partir de la fecha de facturación',t:[[100,30,'f']]},
+  {c:'0243',m:'LE',d:'45 días a partir de la fecha de facturación',t:[[100,45,'f']]},
+  {c:'0027',m:'LE',d:'60 días a partir de la fecha de facturación',t:[[100,60,'f']]},
+  {c:'0208',m:'LH',d:'30 días fecha de presentación de factura',t:[[100,30,'f']]},
+  {c:'0209',m:'LH',d:'60 días fecha de presentación de factura',t:[[100,60,'f']]},
+  {c:'0252',m:'E',d:'50% antes del envío - 50% 30 días contra la recepción de la mercancía',t:[[50,0,'a'],[50,30,'r']]},
+  {c:'0069',m:'E',d:'50% anticipado - 50% 30 días a partir de la fecha de facturación',t:[[50,0,'a'],[50,30,'f']]},
+  {c:'0183',m:'E',d:'50% contra recep de mercancías - 50% 30 días contra recep de mercancías',t:[[50,0,'r'],[50,30,'r']]},
+  {c:'0189',m:'E',d:'30% anticipado - 20% 30 días FF - 30% 60 días FF - 20% 90 días FF',t:[[30,0,'a'],[20,30,'f'],[30,60,'f'],[20,90,'f']]},
+  {c:'0196',m:'E',d:'50% 60 días - 50% 90 días AWB',t:[[50,60,'f'],[50,90,'f']]},
+  {c:'0299',m:'E',d:'10% ant. 40% 45ds. 40% 90ds. 10% 110ds. Fec.Embarque',t:[[10,0,'a'],[40,45,'f'],[40,90,'f'],[10,110,'f']]},
+  {c:'0061',m:'E',d:'40% anticipado - 60% 60 días a partir de la fecha de facturación',t:[[40,0,'a'],[60,60,'f']]}
+];
+function condsFor(tipo){return CONDS.filter(function(c){return c.m==='LE'||(tipo==='COMEX'?c.m==='E':c.m==='LH');});}
+// pw = plazo ponderado Σ %×días · fin = fracción financiada (no anticipada) · maxD = último vencimiento
+function condInfo(c,tr){
+  var pw=0,fin=0,maxD=0,rec=false;
+  c.t.forEach(function(x){
+    if(x[2]==='a') return;
+    var d=x[1]+(x[2]==='r'?tr:0); if(x[2]==='r') rec=true;
+    pw+=x[0]/100*d; fin+=x[0]/100; maxD=Math.max(maxD,d);
+  });
+  return {c:c.c,d:c.d,pw:Math.round(pw*10)/10,fin:Math.round(fin*100)/100,maxD:maxD,rec:rec};
+}
+function condSel(){
+  var code=document.getElementById('cpag').value, c=CONDS.find(function(x){return x.c===code;});
+  return c?condInfo(c,gv('ctr')):null;
+}
+function fillConds(){
+  var sel=document.getElementById('cpag'), prev=sel.value, tipo=document.getElementById('tcli').value;
+  var list=condsFor(tipo);
+  sel.innerHTML='<option value="">Otra — ingresar plazo manual (100% a crédito)</option>'+
+    list.map(function(c){return '<option value="'+c.c+'">'+c.c+' — '+c.d+'</option>';}).join('');
+  sel.value=list.some(function(c){return c.c===prev;})?prev:'';
+}
+// Simulación: límite y máximo por pedido para cada condición del mercado del cliente
+function simRows(L,pct,nv){
+  var P={tam:L.tam,obj:L.obj,nuevo:L.nuevo,atraso:L.atraso,cfo:L.fcCFO};
+  return condsFor(L.tipo).map(function(c){
+    var ci=condInfo(c,L.transito), r={ci:ci,perm:nv!=='medio'||ci.maxD<=60};
+    if(ci.fin===0){r.aprob=null;r.max=Infinity;r.ok=true;return r;}
+    var raw=lmtCore(P,ci.pw).lmtRaw*pct/100;
+    r.aprob=Math.round(raw); r.max=Math.round(raw/ci.fin);
+    r.ok=L.modo!=='compra'||L.compra*ci.fin<=raw;
+    return r;
+  });
+}
+function simHtml(L,pct,nv,preview){
+  if(!L||L.v<3) return '';
+  var u=function(x){return 'USD '+Math.round(x).toLocaleString('es-AR');};
+  var pc=function(x){return Math.round(x*100)+'%';};
+  var compra=L.modo==='compra'&&L.compra>0;
+  var rows=simRows(L,pct,nv);
+  var sel=L.cond?rows.find(function(r){return r.ci.c===L.cond;}):null;
+  if(!sel){ // plazo manual: 100% a crédito
+    var ap=Math.round(L.lmt*pct/100);
+    sel={ci:{c:'',d:'Plazo manual '+fd1(L.plazo)+' días (100% a crédito)',pw:L.plazo,fin:1,maxD:L.plazo},aprob:ap,max:ap,perm:nv!=='medio'||L.plazo<=60};
+    sel.ok=!compra||L.compra<=ap;
+  }
+  var box=function(bg,bd,col,html){return '<div style="background:'+bg+';border:1px solid '+bd+';color:'+col+';border-radius:8px;padding:9px 12px;font-size:12px;line-height:1.6;margin-bottom:8px">'+html+'</div>';};
+  var lim=preview?'Límite':'Límite aprobado';
+  var h='';
+  // Condición seleccionada
+  var selTxt='<strong>'+(sel.ci.c?sel.ci.c+' — ':'')+sel.ci.d+'</strong><br>';
+  if(sel.ci.fin===0) selTxt+='Sin riesgo crediticio: se puede vender cualquier importe.';
+  else {
+    selTxt+='Plazo ponderado '+fd1(sel.ci.pw)+' d · '+pc(sel.ci.fin)+' financiado · '+lim+' '+u(sel.aprob)+' · <strong>Máximo por pedido '+u(sel.max)+'</strong>';
+    if(!sel.perm) selTxt+='<br>⚠ Riesgo Moderado: plazo máximo 60 días (último vencimiento '+fd1(sel.ci.maxD)+' d).';
+  }
+  if(compra){
+    var expo=L.compra*sel.ci.fin;
+    selTxt+='<br>Compra '+u(L.compra)+' → exposición a crédito '+u(expo)+': '+
+      (sel.ok&&sel.perm?'<strong>✅ Entra con esta condición.</strong>':'<strong>❌ No entra'+(sel.ok?'':' (excede en '+u(expo-sel.aprob)+')')+'.</strong>');
+  }
+  var good=sel.ok&&sel.perm;
+  h+=box(good?'var(--gl)':'var(--rl)',good?'var(--gb)':'var(--rb)',good?'#065f46':'#7f1d1d',selTxt);
+  // Sugerencias
+  var cand=rows.filter(function(r){return r.perm&&r.ci.fin>0&&r.ci.c!==sel.ci.c&&r.ok;});
+  cand.sort(compra?function(a,b){return b.ci.pw-a.ci.pw;}:function(a,b){return b.max-a.max;});
+  cand=cand.slice(0,3);
+  var sug='<strong>Condiciones sugeridas</strong> '+(compra?'(entran con la compra; ordenadas de mayor a menor plazo para el cliente)':'(mayor importe por pedido)')+'<br>';
+  if(cand.length) sug+=cand.map(function(r){return '• '+r.ci.c+' — '+r.ci.d+': '+lim+' '+u(r.aprob)+' · máx. por pedido '+u(r.max)+(compra?' · exposición '+u(L.compra*r.ci.fin):'');}).join('<br>');
+  else {
+    var best=rows.filter(function(r){return r.perm&&r.ci.fin>0;}).sort(function(a,b){return b.max-a.max;})[0];
+    sug+=pct===0?'Riesgo Alto: no hay condiciones a crédito. Solo 0135 — 100% Anticipado.':
+      'Ninguna condición a crédito alcanza para esta compra. Opciones: 0135 — 100% Anticipado'+(best?', o reducir la compra a '+u(best.max)+' con '+best.ci.c+' — '+best.ci.d:'')+'.';
+  }
+  h+=box('#f0f4ff','#c7d7ff','#312e81',sug);
+  // Tabla completa (plegada)
+  h+='<details style="font-size:11px;margin-bottom:6px"><summary style="cursor:pointer;color:var(--g600);font-weight:600">Ver las '+rows.length+' condiciones ('+L.tipo+')</summary>'+
+    '<table style="margin-top:6px"><thead><tr><th>Condición</th><th style="text-align:right">Plazo pond.</th><th style="text-align:right">% financ.</th><th style="text-align:right">'+lim+'</th><th style="text-align:right">Máx. por pedido</th>'+(compra?'<th style="text-align:center">¿Entra?</th>':'')+'</tr></thead><tbody>'+
+    rows.map(function(r){
+      var isSel=r.ci.c===sel.ci.c;
+      return '<tr style="'+(isSel?'font-weight:700;background:var(--yl)':'')+(r.perm?'':';opacity:.5')+'"><td>'+r.ci.c+' — '+r.ci.d+(r.perm?'':' <em>(no permitida: Riesgo Moderado, máx. 60 d)</em>')+'</td>'+
+        '<td style="text-align:right">'+fd1(r.ci.pw)+' d</td><td style="text-align:right">'+pc(r.ci.fin)+'</td>'+
+        '<td style="text-align:right">'+(r.aprob===null?'—':u(r.aprob))+'</td><td style="text-align:right">'+(r.max===Infinity?'Sin límite':u(r.max))+'</td>'+
+        (compra?'<td style="text-align:center">'+(r.ok&&r.perm?'✅':'❌')+'</td>':'')+'</tr>';
+    }).join('')+'</tbody></table></details>';
+  h+='<div style="font-size:10px;color:var(--g400);line-height:1.5">'+
+    (preview?'Vista previa antes del scoring (100%). El resultado final aplica el % del nivel de riesgo. ':'')+
+    'Plazo ponderado = Σ % × días (anticipos = 0; contra recepción suma '+fd1(L.transito)+' días de tránsito). Máx. por pedido = '+lim.toLowerCase()+' / % financiado. '+
+    '<strong>No considera saldo pendiente de cuenta corriente: verificar en SAP antes de liberar.</strong></div>';
+  return h;
 }
 function fcNota(L,f2){
   if(L.fcReal===undefined||L.fcReal<=L.fcMax) return '';
@@ -923,7 +1049,15 @@ function uLMT(){
   var nuevo=document.getElementById('cnew').value==='1';
   ['ov','dm'].forEach(function(id){var el=document.getElementById(id);el.disabled=nuevo;el.style.opacity=nuevo?.45:1;});
   document.getElementById('vv-lbl').textContent=nuevo?'VCA estimado — volumen de compra anual (USD)':'TAM 2025 — ventas del último año (USD)';
+  document.getElementById('compra-wrap').style.display=document.getElementById('cmodo').value==='compra'?'block':'none';
+  var ci=condSel(), pp=document.getElementById('pp');
+  document.getElementById('tr-wrap').style.display=ci&&ci.rec?'block':'none';
+  pp.disabled=!!ci; pp.style.opacity=ci?.6:1;
+  if(ci) pp.value=ci.pw;
+  document.getElementById('pp-lbl').textContent=ci?'Plazo ponderado (días) — según condición':'Plazo pactado (días)';
   var L=calcLMT();
+  var sb=document.getElementById('sim-box');
+  sb.style.display=L?'block':'none'; sb.innerHTML=L?simHtml(L,100,'bajo',true):'';
   var over=!!L&&!nuevo&&L.fcReal>LMT_P.fcMax;
   document.getElementById('fc-cap').style.display=over?'block':'none';
   if(over) document.getElementById('fc-cap-txt').textContent='FC objetivo '+L.fcReal.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2})+
@@ -1324,14 +1458,15 @@ function lmtCard(R){
     [L.nuevo?'VCA estimado':'TAM 2025',u(L.tam)],
     ['Objetivo ventas 2026',L.nuevo?'— (nuevo)':L.obj?u(L.obj):'— (sin objetivo)'],
     ['FC (Objetivo / TAM'+(L.v>=2?', máx. '+f2(L.fcMax):'')+')',f2(L.fc)+(L.v>=2?fcNota(L,f2):'')],
-    L.v>=2?['CPR (= Plazo pactado)',fd1(L.cpr)+' días']:['CPR (Plazo '+fd1(L.plazo)+' + Atraso '+fd1(L.atraso)+')',fd1(L.cpr)+' días'],
+    L.v>=3?['Condición de pago',L.cond?L.cond+' — '+(CONDS.find(function(c){return c.c===L.cond;})||{d:''}).d:'Plazo manual (100% a crédito)']:null,
+    L.v>=2?['CPR (= Plazo '+(L.cond?'ponderado':'pactado')+')',fd1(L.cpr)+' días']:['CPR (Plazo '+fd1(L.plazo)+' + Atraso '+fd1(L.atraso)+')',fd1(L.cpr)+' días'],
     ['FR_pago'+(L.nuevo?'':' (atraso '+fd1(L.atraso)+' días)'),f2(L.fr)],
     ['FCF',f2(L.fcf)],
     ['CN calculado',u(L.cn)],
     ['Techo por plazo',L.techo===null?'Sin techo (≤60 días)':u(L.techo)+' ('+String(L.techoM).replace('.',',')+' meses TAM)'],
     ['Límite Final = MIN(CN ; Techo)',u(L.lmt)],
     ['Límite aprobado ('+R.pct+'% por scoring)',R.pct===0?'Rechazado':u(R.laprov)]
-  ];
+  ].filter(Boolean);
   var av=L.rp?rpAviso(L.rp.banda,L.tipo):'';
   return '<div class="card"><div class="ct">Límite de crédito — Política jun-2026</div>'+
     '<div class="cs">CN = TAM × (CPR/360) × FC × FR_pago × FCF · Límite Final = MIN(CN ; Techo)'+
@@ -1339,7 +1474,10 @@ function lmtCard(R){
     (av?'<div style="background:var(--rl);border:1px solid var(--rb);color:#7f1d1d;border-radius:7px;padding:7px 11px;font-size:11px;margin-bottom:8px">⚠ '+av+'</div>':'')+
     '<table><tbody>'+rows.map(function(r,i){var hl=i>=rows.length-2;
       return '<tr style="'+(hl?'font-weight:700;background:var(--g50)':'')+'"><td class="rn">'+r[0]+'</td><td style="text-align:right;font-family:\'DM Mono\',monospace;font-size:11px">'+r[1]+'</td></tr>';}).join('')+
-    '</tbody></table></div>';
+    '</tbody></table>'+
+    (L.v>=3?'<div style="font-size:11px;font-weight:700;color:var(--navy);margin:12px 0 6px;text-transform:uppercase;letter-spacing:.05em">'+
+      (L.modo==='compra'?'Compra puntual — USD '+Math.round(L.compra).toLocaleString('es-AR'):'Actualización de información — condiciones de pago')+'</div>'+simHtml(L,R.pct,R.nv,false):'')+
+    '</div>';
 }
 
 // ── BUILD INTERNAL HTML (from result object, works on any device) ─────────────
@@ -1431,9 +1569,10 @@ function buildInternalHtml(R){
     [['Categorización de Riesgo',nv==='bajo'?'Nivel de Riesgo Bajo':nv==='medio'?'Nivel de Riesgo Medio':'Nivel de Riesgo Alto'],
      ['Límite Máximo',pct===0?'Rechazado':'USD '+laprov.toLocaleString('es-AR')],
      ['Fecha Revisión',hoy],['Próxima Revisión',nxtStr],
+    ].concat(R.lmd&&R.lmd.cond?[['Condición de pago',R.lmd.cond+' — '+(CONDS.find(function(c){return c.c===R.lmd.cond;})||{d:''}).d]]:[]).concat([
      ['Score Total',tot+'/100'],['Nivel Auth','Nivel '+(an+1)+' — '+ACS[an].a],
      ['Veto Activo',anyV?'Sí — Revisión obligatoria':'No'],['Balance Anual','Adjuntar PDF impreso']
-    ].map(function(x){return '<div><div class="sf-f">'+x[0]+'</div><div class="sf-v">'+x[1]+'</div></div>';}).join('')+
+    ]).map(function(x){return '<div><div class="sf-f">'+x[0]+'</div><div class="sf-v">'+x[1]+'</div></div>';}).join('')+
     '</div></div>'
   );
 }
@@ -2014,6 +2153,8 @@ function resetAll(){
   ['cn','cp','p1','p2','ms','vv','ov','fx-yr'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('pp').value=60;document.getElementById('dm').value=0;
   document.getElementById('tcli').value='Local';document.getElementById('cnew').value='0';document.getElementById('fc-cfo').checked=false;
+  document.getElementById('cmodo').value='act';document.getElementById('cimp').value='';document.getElementById('ctr').value=30;
+  fillConds();document.getElementById('cpag').value='';
   document.getElementById('cm').value='';document.getElementById('fx-box').style.display='none';
   document.getElementById('lmt-box').style.display='none';document.getElementById('fx-grid').style.display='none';
   document.getElementById('tc-p').value='1';document.getElementById('tc-c').value='1';
@@ -2032,6 +2173,7 @@ function resetAll(){
 }
 
 // Init
+fillConds();
 loadCfg();
 document.getElementById('hcount').textContent=JSON.parse(localStorage.getItem('credit_evals_backup')||'[]').length;
 </script>
