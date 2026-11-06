@@ -2174,14 +2174,42 @@ function loadInputs(o){
   aC();uRP();uLMT();
   ['b1','b2','b3','b4'].forEach(function(k){if(o[k]!==undefined) set(k,o[k]);}); // uRP no debe pisar el B.1 guardado
 }
-// Evaluaciones anteriores a esta función: solo se recupera lo que guardaba el detalle
+// Evaluaciones anteriores a esta función: se reconstruyen los datos a partir del detalle guardado
+// (estados en USD + TC + ratios). Inventario, cuentas por cobrar y servicio de deuda salen de
+// prueba ácida, DSO y DSCR; caja y otros activos corrientes quedan sumados en Caja.
 function legacyInputs(m){
-  var o={cn:m.nom||'',cp:m.pai||'',p1:m.pp1||'',p2:m.pp2||'',ms:m.msol||'',b1:m.b1,b2:m.b2,b3:m.b3,b4:m.b4};
+  var o={cn:m.nom||'',cp:m.pai||'',p1:m.pp1&&m.pp1!=='Año 1'?m.pp1:'',p2:m.pp2&&m.pp2!=='Año 2'?m.pp2:'',ms:m.msol||'',b1:m.b1,b2:m.b2,b3:m.b3,b4:m.b4};
   var L=m.lmd;
   if(L){
     o.tcli=L.tipo;o.cnew=L.nuevo?'1':'0';o.vv=L.tam;if(L.obj)o.ov=L.obj;o.dm=L.atraso;o.pp=L.plazo;
     if(L.fcCFO) o['fc-cfo']=1;
     if(L.v>=3){o.cmodo=L.modo;if(L.compra)o.cimp=L.compra;if(L.cond)o.cpag=L.cond;o.ctr=L.transito;}
+  }
+  var f2=m.fs2, f1=m.fs1, r1=m.r1||{}, r2=m.r2||{};
+  if(f2){
+    var mon=m.mon||'USD', tP=parseFloat(m.tcPv)||1, tC=parseFloat(m.tcCv)||1;
+    if(mon==='USD'){tP=1;tC=1;}
+    var r=function(x){x=Math.round(x*100)/100;return isFinite(x)?x:0;};
+    var put=function(k,x){x=r(x);if(x) o[k]=x;};
+    o.cm=mon;
+    if(mon!=='USD'){o['tc-p']=tP;o['tc-c']=tC;o['tcp-vis']=tP;o['tcc-vis']=tC;}
+    // Año 2 — resultados (TC promedio) y balance (TC cierre)
+    ['vn','cv','go','da','gf','imp'].forEach(function(k){put(k,(f2[k]||0)/tP);});
+    if(r2.ds) put('sd',f2.ebitda/r2.ds/tP);
+    put('fd',(m.fd2||0)/tC);
+    var inv2=r2.ac!==null&&r2.ac!==undefined?f2.ac-r2.ac*f2.pc:0;
+    var cxc2=r2.dso!==null&&r2.dso!==undefined?r2.dso*f2.vn/365:0;
+    put('b-inv',inv2/tC);put('b-cxc',cxc2/tC);put('b-caja',(f2.ac-inv2-cxc2)/tC);
+    put('b-anc',f2.anc/tC);put('b-pc',f2.pc/tC);put('b-pnc',f2.pnc/tC);put('b-pn',f2.pn/tC);
+    // Año 1
+    if(f1){
+      put('a1-vn',f1.vn/tP);put('a1-ebitda',f1.ebitda/tP);put('a1-un',f1.un/tP);
+      put('a1-ac',f1.ac/tC);put('a1-at',f1.at/tC);put('a1-pc',f1.pc/tC);put('a1-pt',f1.pt/tC);
+      if(r1.ac!==null&&r1.ac!==undefined) put('a1-inv',(f1.ac-r1.ac*f1.pc)/tC);
+      if(r1.dso!==null&&r1.dso!==undefined) put('a1-cxc',r1.dso*f1.vn/365/tC);
+      if(r1.ds) put('a1-sd',f1.ebitda/r1.ds/tP);
+      put('a1-fd',(m.fd1||0)/tC);
+    }
   }
   return o;
 }
@@ -2240,7 +2268,7 @@ function showEditModal(){
   var ev=pendingEdit.ev, m=pendingEdit.m;
   document.getElementById('edit-info').innerHTML='<strong>'+esc(ev.nombre||m.nom)+'</strong> · '+esc(fmtDate(String(ev.fecha||m.hoy||'')))+' · Score '+(m.tot!==undefined?m.tot:ev.score)+
     '<br>Se guardará como una versión nueva; la actual queda en el historial.'+
-    (m.inp?'':'<br><span style="color:var(--re)">Evaluación anterior a esta función: se recuperan cliente, límite y Bloque B; los estados financieros hay que volver a cargarlos.</span>');
+    (m.inp?'':'<br><span style="color:#c2410c">Evaluación anterior a esta función: los datos se reconstruyen desde el resultado guardado (caja y otros activos corrientes quedan sumados en Caja).</span>');
   document.getElementById('edit-por').value=getCfg().analista||'';
   document.getElementById('edit-motivo').value='';
   document.getElementById('edit-err').style.display='none';
@@ -2269,7 +2297,7 @@ function showEditBanner(){
   b.style.display='block';
   b.innerHTML='<strong>✏️ Corrigiendo «'+esc(editCtx.nombre)+'»</strong> — se guardará como <strong>versión '+editCtx.n+'</strong> (las anteriores quedan en el historial).<br>'+
     'Analista: '+esc(editCtx.por)+' · Motivo: '+esc(editCtx.motivo)+
-    (editCtx.legacy?'<br><strong style="color:var(--re)">⚠ Evaluación anterior a esta función: volvé a cargar los estados financieros (paso 2) o importá el código del formulario del cliente.</strong>':'')+
+    (editCtx.legacy?'<br><strong>ℹ Evaluación anterior a esta función: datos reconstruidos desde el resultado guardado. Caja y otros activos corrientes quedan sumados en Caja; el resto es igual.</strong>':'')+
     '<br><button class="btn bs bsm" style="margin-top:6px" onclick="if(confirm(\'¿Cancelar la corrección? No se guarda nada.\'))resetAll()">Cancelar corrección</button>';
 }
 // Código de retoma: todos los datos cargados + referencia a la evaluación
