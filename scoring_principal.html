@@ -1852,7 +1852,7 @@ function renderHistory(all){
       '<div style="flex:1;min-width:150px">'+
         '<div style="font-weight:600;color:var(--navy);font-size:13px">'+ev.nombre+'</div>'+
         '<div style="font-size:11px;color:var(--g400);margin-top:1px">'+ev.pais+' · '+ev.moneda+' · '+ev.p2+' · USD '+ev.monto.toLocaleString('es-AR')+(ev.analista?' · '+ev.analista:'')+'</div>'+
-        '<div style="font-size:10px;color:var(--g400);margin-top:1px">'+ev.fecha+' · '+(ev.pct===0?'Rechazado':'USD '+ev.limiteAprobado.toLocaleString('es-AR'))+(ev.anyVeto?' · <span style="color:var(--re);font-weight:700">⚠ Veto</span>':'')+'</div>'+
+        '<div style="font-size:10px;color:var(--g400);margin-top:1px">'+fmtDate(String(ev.fecha||''))+' · '+(ev.pct===0?'Rechazado':'USD '+ev.limiteAprobado.toLocaleString('es-AR'))+(ev.anyVeto?' · <span style="color:var(--re);font-weight:700">⚠ Veto</span>':'')+'</div>'+
         (v?'<div style="font-size:10px;color:#c2410c;margin-top:2px;font-weight:600">✏️ Versión '+v.n+' · corregida '+esc(v.fecha)+' por '+esc(v.por)+'</div>':'')+
         (grp.length>1?'<div onclick="var d=this.parentNode.parentNode.nextSibling;d.style.display=d.style.display===\'none\'?\'block\':\'none\'" style="font-size:10px;color:var(--bl,#1d4ed8);cursor:pointer;margin-top:2px;font-weight:600">▸ Ver versiones ('+grp.length+')</div>':'')+
       '</div>'+
@@ -1878,7 +1878,7 @@ function renderHistory(all){
 function verRow(e){
   var m=parseDet(e)||{}, v=m.ver;
   return '<div style="font-size:11px;color:var(--g600);padding:5px 0;border-bottom:1px dashed var(--bdr);line-height:1.5">'+
-    '<strong>Versión '+(v?v.n:1)+'</strong> · '+esc(e.fecha)+' · '+esc(v?v.por:(e.analista||'—'))+' · Score '+e.score+' · '+(e.pct===0?'Rechazado':'USD '+(+e.limiteAprobado||0).toLocaleString('es-AR'))+
+    '<strong>Versión '+(v?v.n:1)+'</strong> · '+esc(fmtDate(String(e.fecha||'')))+' · '+esc(v?v.por:(e.analista||'—'))+' · Score '+e.score+' · '+(e.pct===0?'Rechazado':'USD '+(+e.limiteAprobado||0).toLocaleString('es-AR'))+
     ' <button onclick="dlReport(\''+e.id+'\',\'internal\')" title="Informe interno" style="background:none;border:none;cursor:pointer;font-size:12px">📄</button>'+
     '<button onclick="dlReport(\''+e.id+'\',\'client\')" title="Informe cliente (EN)" style="background:none;border:none;cursor:pointer;font-size:12px">📤</button>'+
     (v?'<br>Motivo: '+esc(v.motivo)+(v.cambios&&v.cambios.length?'<br><span style="color:var(--g400)">'+v.cambios.map(esc).join(' · ')+'</span>':''):'<br><span style="color:var(--g400)">Evaluación original</span>')+
@@ -2238,7 +2238,7 @@ function openEdit(id){
 }
 function showEditModal(){
   var ev=pendingEdit.ev, m=pendingEdit.m;
-  document.getElementById('edit-info').innerHTML='<strong>'+esc(ev.nombre||m.nom)+'</strong> · '+esc(ev.fecha||m.hoy)+' · Score '+(m.tot!==undefined?m.tot:ev.score)+
+  document.getElementById('edit-info').innerHTML='<strong>'+esc(ev.nombre||m.nom)+'</strong> · '+esc(fmtDate(String(ev.fecha||m.hoy||'')))+' · Score '+(m.tot!==undefined?m.tot:ev.score)+
     '<br>Se guardará como una versión nueva; la actual queda en el historial.'+
     (m.inp?'':'<br><span style="color:var(--re)">Evaluación anterior a esta función: se recuperan cliente, límite y Bloque B; los estados financieros hay que volver a cargarlos.</span>');
   document.getElementById('edit-por').value=getCfg().analista||'';
