@@ -200,12 +200,43 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--g50)}
 <div class="modal-bg" id="import-modal">
   <div class="modal" style="width:420px">
     <h3>📥 Importar datos del cliente</h3>
-    <p>Pegá el código generado por el formulario del cliente.</p>
+    <p>Pegá el código generado por el formulario del cliente, o un código de retoma de una evaluación finalizada.</p>
     <textarea id="import-code" style="width:100%;height:80px;padding:8px;border:1.5px solid var(--bdr);border-radius:7px;font-family:'DM Mono',monospace;font-size:11px;resize:vertical;outline:none" placeholder="Pegá el código aquí..."></textarea>
     <div class="modal-err" id="import-err" style="display:none;color:var(--re);font-size:12px;margin-top:6px"></div>
     <div class="btn-row" style="margin-top:12px">
       <button class="btn bp" onclick="doImport()">Importar</button>
       <button class="btn bs" onclick="document.getElementById('import-modal').classList.remove('show')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT (CORRECCIÓN) MODAL -->
+<div class="modal-bg" id="edit-modal">
+  <div class="modal" style="width:440px">
+    <h3>✏️ Corregir evaluación</h3>
+    <p id="edit-info"></p>
+    <label>Analista que corrige</label>
+    <input type="text" id="edit-por" placeholder="Ej: María García" style="margin-bottom:9px">
+    <label>Motivo de la corrección</label>
+    <textarea id="edit-motivo" style="width:100%;height:64px;padding:8px;border:1.5px solid var(--bdr);border-radius:7px;font-size:12px;resize:vertical;outline:none" placeholder="Ej: el cliente presentó 2 referencias bancarias / error de carga en B.2"></textarea>
+    <div class="modal-err" id="edit-err"></div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn bp" onclick="confirmEdit()">Abrir para corregir</button>
+      <button class="btn bs" onclick="document.getElementById('edit-modal').classList.remove('show')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- CÓDIGO DE RETOMA MODAL -->
+<div class="modal-bg" id="retoma-modal">
+  <div class="modal" style="width:440px">
+    <h3>🔑 Código de retoma</h3>
+    <p>Con este código se puede volver a abrir esta evaluación completa (en cualquier compu) desde <strong>Importar datos del cliente</strong> y registrarla como corrección.</p>
+    <textarea id="retoma-code" readonly style="width:100%;height:90px;padding:8px;border:1.5px solid var(--bdr);border-radius:7px;font-family:'DM Mono',monospace;font-size:10px;resize:vertical;outline:none"></textarea>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn bp" onclick="copyRetoma()">📋 Copiar</button>
+      <button class="btn bs" onclick="document.getElementById('retoma-modal').classList.remove('show')">Cerrar</button>
+      <span id="retoma-ok" style="display:none;font-size:11px;color:var(--gr)">✓ Copiado</span>
     </div>
   </div>
 </div>
@@ -234,6 +265,8 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--g50)}
     <div style="flex:1;min-width:110px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.32);margin-bottom:2px">Referencias</div><div style="font-size:12px;color:#fff"><b style="color:var(--acc)">2</b> bancarias/comerciales</div></div>
     <div style="flex:1;min-width:110px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.32);margin-bottom:2px">Revisión</div><div style="font-size:12px;color:#fff"><b style="color:var(--acc)">Anual</b></div></div>
   </div>
+
+  <div id="edit-banner" style="display:none;background:#fff7ed;border:2px solid #fdba74;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#7c2d12;line-height:1.6"></div>
 
   <div class="steps">
     <div class="stp on" id="st1"><div class="sn">1</div><div class="sl">Datos &amp; FX</div></div>
@@ -606,6 +639,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--g50)}
       <button class="btn bs" onclick="goS(3)">← Ajustar</button>
       <button class="btn bp" onclick="printInternal()">🖨️ PDF interno</button>
       <button class="btn bp" style="background:#059669" onclick="printClient()">📄 PDF para el cliente (EN)</button>
+      <button class="btn bs" onclick="showRetoma()">🔑 Código de retoma</button>
       <button class="btn bs" onclick="resetAll()">Nueva evaluación</button>
       <span style="font-size:11px;color:var(--g400);font-style:italic" id="save-status">✓ Guardado en historial</span>
     </div>
@@ -1421,13 +1455,26 @@ function calc(){
 
   // Store result for PDF generation
   lastResult={nom,pai,mon,pp1,pp2,hoy,nxtStr,tcPv,tcCv,msol,lmt:Math.round(lmt),lmd,laprov,pct,nv,tot,sA,sB,ta,mej,det,an,anyV,vts,r1,r2,sc,trs,rrows,b1,b2,b3,b4,b1l,b2l,b3l,b4l,ACS,decT,cbT,icns,fs1,fs2,fd2,fd1:a1fd};
+  // Datos cargados (para poder retomar/corregir) y versión si es una corrección
+  lastResult.inp=snapInputs();
+  if(editCtx){
+    lastResult.ver={orig:editCtx.orig,prev:editCtx.prev,n:editCtx.n,por:editCtx.por,motivo:editCtx.motivo,
+      fecha:new Date().toLocaleString('es-AR'),cambios:diffEval(editCtx.prevMin,lastResult)};
+  }
 
-  // Save to Google Sheets (con detalle comprimido ~1.5KB para descarga cross-device)
+  // Save to Google Sheets (con detalle comprimido para descarga cross-device)
   var cfg=getCfg();
   var evId=Date.now();
-  var ev={id:evId,fecha:hoy,proxRevision:nxtStr,nombre:nom,pais:pai,moneda:mon,p2:pp2,monto:msol,score:tot,nivel:nv,pct:pct,limiteAprobado:laprov,lmt:Math.round(lmt),nivelAuth:an,anyVeto:anyV,sA:sA,sB:sB,analista:cfg.analista||'',detalle:JSON.stringify(minResult(lastResult))};
+  lastResult.id=evId;
+  var ev={id:evId,fecha:hoy,proxRevision:nxtStr,nombre:nom,pais:pai,moneda:mon,p2:pp2,monto:msol,score:tot,nivel:nv,pct:pct,limiteAprobado:laprov,lmt:Math.round(lmt),nivelAuth:an,anyVeto:anyV,sA:sA,sB:sB,
+    analista:editCtx?editCtx.por:(cfg.analista||''),detalle:JSON.stringify(minResult(lastResult),rnd4)};
+  // Si se vuelve a ajustar y recalcular, la próxima versión parte de esta
+  if(editCtx){editCtx.prev=String(evId);editCtx.n++;editCtx.prevMin=JSON.parse(ev.detalle);editCtx.legacy=false;showEditBanner();}
   if(cfg.url){
-    fetch(cfg.url+'?action=save&data='+encodeURIComponent(JSON.stringify(ev)))
+    // GET como siempre; si la URL queda muy larga (límite de Google ~8 KB) se envía por POST (doPost del script)
+    var saveUrl=cfg.url+'?action=save&data='+encodeURIComponent(JSON.stringify(ev));
+    (saveUrl.length<=7000?fetch(saveUrl)
+      :fetch(cfg.url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({action:'save'},ev))}))
     .then(()=>{document.getElementById('save-status').textContent='✓ Guardado en historial compartido';})
     .catch(()=>{document.getElementById('save-status').textContent='⚠ Guardado local (sin conexión al Sheet)';});
   }
@@ -1497,6 +1544,7 @@ function buildInternalHtml(R){
     '<div style="font-family:\'DM Serif Display\',serif;font-size:19px;color:#fff;margin-bottom:1px">'+nom+'</div>'+
     '<div style="font-size:11px;color:rgba(255,255,255,.5)">'+pai+' · '+mon+' · '+pp1+' → '+pp2+' · <strong style="color:var(--acc)">USD '+msol.toLocaleString('es-AR')+'</strong></div>'+
     '</div><div style="text-align:right"><div style="font-size:9px;color:rgba(255,255,255,.32)">Fecha</div><div style="font-family:\'DM Mono\',monospace;font-size:12px;color:rgba(255,255,255,.8)">'+hoy+'</div><div style="font-size:9px;color:rgba(255,255,255,.22);margin-top:1px">Vigencia: 12 meses</div></div></div>'+
+    verCard(R.ver)+
     (anyV?'<div class="vbanner"><span style="font-size:18px">🚨</span><div><strong style="color:#991b1b;font-size:12px;display:block;margin-bottom:2px">Factor de Veto — Revisión obligatoria (Sec. 4.1 y 6.2)</strong><p style="font-size:11px;color:#7f1d1d">Escalar a Gerencia Financiera.</p></div></div>':'')+
     '<div class="sem '+nv+'">'+
     '<div style="text-align:center;min-width:62px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--g600);margin-bottom:1px">Score</div><div class="sem-sc">'+tot+'<span>/100</span></div></div>'+
@@ -1773,7 +1821,12 @@ function fmtDate(str){
   return d.toLocaleDateString('es-AR');
 }
 
-function renderHistory(evs){
+function renderHistory(all){
+  // Agrupar versiones: se muestra la última de cada evaluación, las anteriores en "Ver versiones"
+  var groups={}, order=[];
+  all.forEach(function(e){var k=groupKey(e);if(!groups[k]){groups[k]=[];order.push(k);}groups[k].push(e);});
+  order.forEach(function(k){groups[k].sort(function(a,b){var va=(parseDet(a)||{}).ver,vb=(parseDet(b)||{}).ver;return (vb?vb.n:1)-(va?va.n:1)||(+b.id)-(+a.id);});});
+  var evs=order.map(function(k){return groups[k][0];});
   document.getElementById('hcount').textContent=evs.length;
   var cont=document.getElementById('hcont');
   var alert=document.getElementById('h-alert');
@@ -1792,12 +1845,16 @@ function renderHistory(evs){
   cont.innerHTML=evs.map(function(ev){
     var dias=daysUntil(ev.proxRevision);
     var vc=dias===null?'var(--g400)':dias<=0?'var(--re)':dias<=30?'var(--ye)':'var(--gr)';
-    return '<div class="hcard">'+
+    var grp=groups[groupKey(ev)], v=(parseDet(ev)||{}).ver;
+    return '<div>'+
+      '<div class="hcard">'+
       '<div class="hbadge '+ev.nivel+'">'+icns[ev.nivel]+'</div>'+
       '<div style="flex:1;min-width:150px">'+
         '<div style="font-weight:600;color:var(--navy);font-size:13px">'+ev.nombre+'</div>'+
         '<div style="font-size:11px;color:var(--g400);margin-top:1px">'+ev.pais+' · '+ev.moneda+' · '+ev.p2+' · USD '+ev.monto.toLocaleString('es-AR')+(ev.analista?' · '+ev.analista:'')+'</div>'+
         '<div style="font-size:10px;color:var(--g400);margin-top:1px">'+ev.fecha+' · '+(ev.pct===0?'Rechazado':'USD '+ev.limiteAprobado.toLocaleString('es-AR'))+(ev.anyVeto?' · <span style="color:var(--re);font-weight:700">⚠ Veto</span>':'')+'</div>'+
+        (v?'<div style="font-size:10px;color:#c2410c;margin-top:2px;font-weight:600">✏️ Versión '+v.n+' · corregida '+esc(v.fecha)+' por '+esc(v.por)+'</div>':'')+
+        (grp.length>1?'<div onclick="var d=this.parentNode.parentNode.nextSibling;d.style.display=d.style.display===\'none\'?\'block\':\'none\'" style="font-size:10px;color:var(--bl,#1d4ed8);cursor:pointer;margin-top:2px;font-weight:600">▸ Ver versiones ('+grp.length+')</div>':'')+
       '</div>'+
       '<div style="text-align:center;min-width:65px">'+
         '<div style="font-size:9px;color:var(--g400)">Score</div>'+
@@ -1811,9 +1868,21 @@ function renderHistory(evs){
       '</div>'+
       '<button onclick="dlReport(\''+ev.id+'\',\'internal\')" title="Descargar informe interno" style="background:none;border:none;color:var(--navy);cursor:pointer;font-size:13px;padding:4px 5px">📄</button>'+
       '<button onclick="dlReport(\''+ev.id+'\',\'client\')" title="Descargar informe para el cliente (EN)" style="background:none;border:none;color:#059669;cursor:pointer;font-size:13px;padding:4px 5px">📤</button>'+
+      '<button onclick="openEdit(\''+ev.id+'\')" title="Corregir / retomar esta evaluación" style="background:none;border:none;color:#c2410c;cursor:pointer;font-size:13px;padding:4px 5px">✏️</button>'+
       '<button onclick="reqPin(\'del\',\''+ev.id+'\')" style="background:none;border:none;color:var(--g400);cursor:pointer;font-size:14px;padding:4px 6px">🗑</button>'+
+      '</div>'+
+      (grp.length>1?'<div style="display:none;margin:-4px 0 10px 18px;border-left:3px solid #fdba74;padding:4px 0 4px 12px">'+grp.map(verRow).join('')+'</div>':'')+
     '</div>';
   }).join('');
+}
+function verRow(e){
+  var m=parseDet(e)||{}, v=m.ver;
+  return '<div style="font-size:11px;color:var(--g600);padding:5px 0;border-bottom:1px dashed var(--bdr);line-height:1.5">'+
+    '<strong>Versión '+(v?v.n:1)+'</strong> · '+esc(e.fecha)+' · '+esc(v?v.por:(e.analista||'—'))+' · Score '+e.score+' · '+(e.pct===0?'Rechazado':'USD '+(+e.limiteAprobado||0).toLocaleString('es-AR'))+
+    ' <button onclick="dlReport(\''+e.id+'\',\'internal\')" title="Informe interno" style="background:none;border:none;cursor:pointer;font-size:12px">📄</button>'+
+    '<button onclick="dlReport(\''+e.id+'\',\'client\')" title="Informe cliente (EN)" style="background:none;border:none;cursor:pointer;font-size:12px">📤</button>'+
+    (v?'<br>Motivo: '+esc(v.motivo)+(v.cambios&&v.cambios.length?'<br><span style="color:var(--g400)">'+v.cambios.map(esc).join(' · ')+'</span>':''):'<br><span style="color:var(--g400)">Evaluación original</span>')+
+  '</div>';
 }
 
 // ── EXPORT EXCEL (XLSX real via SheetJS) ─────────────────────────────────────
@@ -2016,9 +2085,12 @@ function minResult(R){
     r1:R.r1, r2:R.r2, sc:R.sc, trs:R.trs,
     fs1:R.fs1, fs2:R.fs2,
     vtf:R.vts.map(function(v){return v.a?1:0;}),
-    fd2:R.fd2, fd1:R.fd1
+    fd2:R.fd2, fd1:R.fd1,
+    inp:R.inp, ver:R.ver
   };
 }
+// Redondea decimales al serializar el detalle (achica la URL de guardado)
+function rnd4(k,v){return typeof v==='number'&&!Number.isInteger(v)?Math.round(v*1e4)/1e4:v;}
 function expandResult(m){
   if(m.rrows) return m; // already full result, nothing to do
   var R=Object.assign({},m);
@@ -2066,6 +2138,161 @@ function expandResult(m){
   };
   R.icns={bajo:'🟢',medio:'🟡',alto:'🔴'};
   return R;
+}
+
+// ── CORRECCIONES / VERSIONES ──────────────────────────────────────────────────
+// Cada corrección se guarda como una evaluación nueva (la anterior queda intacta),
+// con ver = {orig, prev, n, por, motivo, fecha, cambios} dentro del Detalle.
+var editCtx=null, pendingEdit=null;
+var INP_SKIP={ub:1,ebit:1,ebitda:1,un:1,'b-ac':1,'b-at':1,'b-pt':1}; // calculados por aC()
+function snapInputs(){
+  var o={};
+  ['s1','s2','s3'].forEach(function(s){
+    document.querySelectorAll('#'+s+' input[id], #'+s+' select[id]').forEach(function(el){
+      if(INP_SKIP[el.id]) return;
+      var v=el.type==='checkbox'?(el.checked?1:0):el.value;
+      if(v===''||v===0) return;
+      o[el.id]=v;
+    });
+  });
+  var exc=Array.from(document.querySelectorAll('.exc-req')).map(function(b){return b.checked?1:0;}).join('');
+  if(exc.indexOf('1')!==-1) o._exc=exc;
+  return o;
+}
+function loadInputs(o){
+  var set=function(id,v){var el=document.getElementById(id);if(!el)return;if(el.type==='checkbox')el.checked=!!+v;else el.value=v;};
+  if(o.tcli) set('tcli',o.tcli);
+  fillConds();
+  if(o.cm){set('cm',o.cm);onMoneda();}
+  Object.keys(o).forEach(function(k){if(k!=='_exc'&&k!=='tcli'&&k!=='cm') set(k,o[k]);});
+  if(o.cm&&o.cm!=='USD'&&(o['tc-p']||o['tc-c'])) document.getElementById('fx-grid').style.display='block';
+  if(o['es-exc']){
+    toggleExc();
+    String(o._exc||'').split('').forEach(function(c,i){var b=document.querySelectorAll('.exc-req')[i];if(b)b.checked=c==='1';});
+    checkExc();
+  }
+  aC();uRP();uLMT();
+  ['b1','b2','b3','b4'].forEach(function(k){if(o[k]!==undefined) set(k,o[k]);}); // uRP no debe pisar el B.1 guardado
+}
+// Evaluaciones anteriores a esta función: solo se recupera lo que guardaba el detalle
+function legacyInputs(m){
+  var o={cn:m.nom||'',cp:m.pai||'',p1:m.pp1||'',p2:m.pp2||'',ms:m.msol||'',b1:m.b1,b2:m.b2,b3:m.b3,b4:m.b4};
+  var L=m.lmd;
+  if(L){
+    o.tcli=L.tipo;o.cnew=L.nuevo?'1':'0';o.vv=L.tam;if(L.obj)o.ov=L.obj;o.dm=L.atraso;o.pp=L.plazo;
+    if(L.fcCFO) o['fc-cfo']=1;
+    if(L.v>=3){o.cmodo=L.modo;if(L.compra)o.cimp=L.compra;if(L.cond)o.cpag=L.cond;o.ctr=L.transito;}
+  }
+  return o;
+}
+function inpLabel(k){
+  if(k==='_exc') return 'Requisitos de excepción';
+  var el=document.getElementById(k); if(!el) return k;
+  var lb=el.closest('div')&&el.closest('div').querySelector('label');
+  var t=lb?lb.textContent.trim():k;
+  return /^[AB]\.\d/.test(t)?t.split(' — ')[0]:t.split(' (')[0].split(' — ')[0];
+}
+function inpVal(k,v){
+  if(v===undefined||v===''||v===null) return '—';
+  var el=document.getElementById(k);
+  if(el&&el.tagName==='SELECT'){var op=Array.from(el.options).find(function(o){return o.value===String(v);});if(op)return op.textContent.split(' — ')[0];}
+  if(el&&el.type==='checkbox') return +v?'Sí':'No';
+  return String(v);
+}
+// Qué cambió entre la versión anterior (a) y la nueva (b)
+function diffEval(a,b){
+  var out=[];
+  if(!a) return out;
+  var ai=a.inp, bi=b.inp||{};
+  if(ai){
+    var keys={};Object.keys(ai).concat(Object.keys(bi)).forEach(function(k){keys[k]=1;});
+    Object.keys(keys).forEach(function(k){
+      if(String(ai[k]===undefined?'':ai[k])!==String(bi[k]===undefined?'':bi[k])) out.push(inpLabel(k)+': '+inpVal(k,ai[k])+' → '+inpVal(k,bi[k]));
+    });
+  } else {
+    ['b1','b2','b3','b4'].forEach(function(k){if(a[k]!==b[k]) out.push(k.toUpperCase().replace('B','B.')+': '+a[k]+' → '+b[k]+' pts');});
+  }
+  var u=function(x){return 'USD '+Math.round(x||0).toLocaleString('es-AR');};
+  if(a.tot!==b.tot) out.push('Score: '+a.tot+' → '+b.tot);
+  if(a.nv!==b.nv) out.push('Nivel: '+a.nv+' → '+b.nv);
+  if(a.lmt!==b.lmt) out.push('Límite Final: '+u(a.lmt)+' → '+u(b.lmt));
+  if(a.laprov!==b.laprov) out.push('Límite aprobado: '+u(a.laprov)+' → '+u(b.laprov));
+  if(out.length>20) out=out.slice(0,20).concat(['… y '+(out.length-20)+' cambios más']);
+  return out;
+}
+function esc(s){return String(s===undefined||s===null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function verCard(v){
+  if(!v) return '';
+  return '<div style="background:#fff7ed;border:1px solid #fdba74;border-radius:9px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#7c2d12;line-height:1.6">'+
+    '<strong>✏️ Versión '+v.n+' — corregida el '+esc(v.fecha)+' por '+esc(v.por)+'</strong><br>Motivo: '+esc(v.motivo)+
+    (v.cambios&&v.cambios.length?'<br>Cambios: '+v.cambios.map(esc).join(' · '):'<br>Sin cambios en los datos.')+'</div>';
+}
+function parseDet(ev){try{return ev&&ev.detalle?JSON.parse(ev.detalle):null;}catch(e){return null;}}
+function groupKey(ev){var m=parseDet(ev);return m&&m.ver?String(m.ver.orig):String(ev.id);}
+function openEdit(id){
+  var ev=cachedHistory.find(function(e){return String(e.id)===String(id);});
+  var m=parseDet(ev);
+  if(!m){alert('Esta evaluación no tiene detalle guardado y no se puede retomar.');return;}
+  pendingEdit={ev:ev,m:m};
+  showEditModal();
+}
+function showEditModal(){
+  var ev=pendingEdit.ev, m=pendingEdit.m;
+  document.getElementById('edit-info').innerHTML='<strong>'+esc(ev.nombre||m.nom)+'</strong> · '+esc(ev.fecha||m.hoy)+' · Score '+(m.tot!==undefined?m.tot:ev.score)+
+    '<br>Se guardará como una versión nueva; la actual queda en el historial.'+
+    (m.inp?'':'<br><span style="color:var(--re)">Evaluación anterior a esta función: se recuperan cliente, límite y Bloque B; los estados financieros hay que volver a cargarlos.</span>');
+  document.getElementById('edit-por').value=getCfg().analista||'';
+  document.getElementById('edit-motivo').value='';
+  document.getElementById('edit-err').style.display='none';
+  document.getElementById('edit-modal').classList.add('show');
+}
+function confirmEdit(){
+  var por=document.getElementById('edit-por').value.trim(), mot=document.getElementById('edit-motivo').value.trim();
+  var err=document.getElementById('edit-err');
+  if(!por||!mot){err.textContent='Completá el analista y el motivo.';err.style.display='block';return;}
+  var cfg=getCfg(); if(!cfg.analista){cfg.analista=por;localStorage.setItem(CFG_KEY,JSON.stringify(cfg));loadCfg();}
+  var ev=pendingEdit.ev, m=pendingEdit.m, v=m.ver||{};
+  var orig=String(v.orig||ev.id);
+  // Número de versión: siguiente al mayor del grupo en el historial
+  var n=(v.n||1)+1;
+  cachedHistory.forEach(function(e){var mm=parseDet(e);if(mm&&mm.ver&&String(mm.ver.orig)===orig) n=Math.max(n,mm.ver.n+1);});
+  document.getElementById('edit-modal').classList.remove('show');
+  resetAll();
+  loadInputs(m.inp||legacyInputs(m));
+  editCtx={orig:orig,prev:String(ev.id),n:n,por:por,motivo:mot,prevMin:m,legacy:!m.inp,nombre:ev.nombre||m.nom};
+  showEditBanner();
+  showTab('n');goS(1);
+}
+function showEditBanner(){
+  var b=document.getElementById('edit-banner');
+  if(!editCtx){b.style.display='none';b.innerHTML='';return;}
+  b.style.display='block';
+  b.innerHTML='<strong>✏️ Corrigiendo «'+esc(editCtx.nombre)+'»</strong> — se guardará como <strong>versión '+editCtx.n+'</strong> (las anteriores quedan en el historial).<br>'+
+    'Analista: '+esc(editCtx.por)+' · Motivo: '+esc(editCtx.motivo)+
+    (editCtx.legacy?'<br><strong style="color:var(--re)">⚠ Evaluación anterior a esta función: volvé a cargar los estados financieros (paso 2) o importá el código del formulario del cliente.</strong>':'')+
+    '<br><button class="btn bs bsm" style="margin-top:6px" onclick="if(confirm(\'¿Cancelar la corrección? No se guarda nada.\'))resetAll()">Cancelar corrección</button>';
+}
+// Código de retoma: todos los datos cargados + referencia a la evaluación
+function b64e(s){return btoa(unescape(encodeURIComponent(s)));}
+function b64d(s){return decodeURIComponent(escape(atob(s)));}
+function showRetoma(){
+  if(!lastResult||!lastResult.inp){alert('No hay una evaluación finalizada.');return;}
+  var R=lastResult, v=R.ver||{};
+  var p={id:R.id,orig:v.orig||R.id,n:v.n||1,inp:R.inp,res:{nom:R.nom,hoy:R.hoy,tot:R.tot,nv:R.nv,lmt:R.lmt,laprov:R.laprov,b1:R.b1,b2:R.b2,b3:R.b3,b4:R.b4}};
+  document.getElementById('retoma-code').value='RETOMA:'+b64e(JSON.stringify(p));
+  document.getElementById('retoma-ok').style.display='none';
+  document.getElementById('retoma-modal').classList.add('show');
+}
+function copyRetoma(){
+  var t=document.getElementById('retoma-code'); t.select();
+  (navigator.clipboard?navigator.clipboard.writeText(t.value):Promise.reject()).catch(function(){document.execCommand('copy');})
+    .finally(function(){document.getElementById('retoma-ok').style.display='inline';});
+}
+function importRetoma(code){
+  var p=JSON.parse(b64d(code.slice(7)));
+  var m=Object.assign({},p.res,{inp:p.inp,ver:{orig:p.orig,n:p.n}});
+  pendingEdit={ev:{id:p.id,nombre:p.res.nom,fecha:p.res.hoy,score:p.res.tot},m:m};
+  showEditModal();
 }
 
 // ── DOWNLOAD FROM HISTORY ─────────────────────────────────────────────────────
@@ -2125,6 +2352,14 @@ function copyScript(){
 function doImport(){
   var code=document.getElementById('import-code').value.trim().replace(/\s+/g,'');
   var err=document.getElementById('import-err');
+  if(code.indexOf('RETOMA:')===0){
+    try{
+      importRetoma(code);
+      document.getElementById('import-modal').classList.remove('show');
+      document.getElementById('import-code').value='';err.style.display='none';
+    }catch(e){err.textContent='Código de retoma inválido. Verificá que lo hayas copiado completo.';err.style.display='block';}
+    return;
+  }
   try{
     var data=JSON.parse(atob(code));
     // Fill form fields
@@ -2171,6 +2406,7 @@ function resetAll(){
   document.querySelectorAll('.exc-req').forEach(b=>b.checked=false);
   document.getElementById('rc').innerHTML='';
   lastResult=null;
+  editCtx=null;showEditBanner();
   goS(1);
 }
 
